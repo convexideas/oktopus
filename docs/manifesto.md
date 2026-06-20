@@ -21,75 +21,73 @@ Oktopus is a control plane that owns the durable layer and treats agent runtimes
 
 > **The control plane owns capabilities and memory; agents plug in as workers.**
 
-The agent is interchangeable; everything that matters stays with you.
-
 ## What it provides
 
-Concrete capabilities, each answering a problem above:
+Concrete capabilities — first to compose work, then to govern it, then to account for it:
 
+- **Standardization & reuse** — workflows and capabilities are shared registry entries, repeatable across the organization.
+- **Extensibility** — bring your own skills, tools, commands, secrets, and data sources (internal or third-party) as first-class, governed capabilities — connected once and reused by every agent, not re-wired per tool.
+- **Distribution** — share and consume capabilities and workflows across teams, and from a governed marketplace of open and third-party providers.
 - **Policy enforcement** — access and process gates (tool use, secret reads, network/filesystem scope, task ordering, prerequisites, destructive actions, deployment, budgets) are decided in code at execution time, not left to the prompt, and are configurable hard / soft / waivable. Conduct *within* a step isn't code-enforced — it's gated by verifiers on the output, not trusted.
 - **Governance** — capabilities are scoped, versioned, and approval-gated; agent-created ones stay proposals until reviewed. You control who can add, override, or run what.
 - **Credentials & budgets** — distribute and scope API keys and licenses centrally instead of scattering them across everyone's environment; access is policy-gated, attributable in the event log, and spend is governed against budgets.
-- **Standardization & reuse** — workflows and capabilities are shared registry entries, repeatable across the organization.
 - **Auditability** — every state transition is an append-only event; outputs are captured as evidence.
-- **Extensibility** — bring your own skills, tools, commands, secrets, and data sources (internal or third-party) as first-class, governed capabilities — connected once and reused by every agent, not re-wired per tool.
-- **Distribution** — share and consume capabilities and workflows across teams, and from a governed marketplace of open and third-party providers.
 - **Portability** — runs, artifacts, and scoped memory (user, team, org) live in the control plane. Context transfers across agents: switch the runtime, keep the context.
 
 In an organization, all of it is scope-governed — per org, client, project, and run.
 
 ## What makes this real
 
-A manifesto that isn't enforced is decoration. Each principle below names the specification that makes it true. The principles change rarely; the specs they point to are the normative, testable contracts.
+A manifesto that isn't enforced is decoration. Each principle links to the spec that enforces it — the normative, testable contract. Principles change rarely; specs evolve under them.
 
 ### 1. The control plane is the source of truth; workers are disposable
 
-The controller holds authoritative state. Workers register, lease bounded work, and can crash or be replaced without losing or duplicating work. This is what makes runtimes interchangeable and the system recoverable.
-*Enforced by:* `define-worker-lease-protocol`, `define-core-run-job-event-model`
+The controller holds authoritative state; workers lease bounded work and can crash or be replaced without losing or duplicating it. That is what makes runtimes interchangeable.
+*Enforced by:* [define-worker-lease-protocol](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-worker-lease-protocol), [define-core-run-job-event-model](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-core-run-job-event-model)
 
-### 2. Evidence over confidence — and output has modalities
+### 2. Everything is evented and auditable
 
-A job is done when its work *verifies* in its own modality — an artifact stored, a message delivered, or an effect confirmed on a real system — never on an agent's say-so. Not all useful output is a stored file; a chat turn and a codebase change are complete without one.
-*Enforced by:* `define-artifacts-verifiers-policy` (output kinds: artifact / stream / effect)
+Every state transition emits an append-only event. State tables say what is true now; the event log is the audit truth — you can reconstruct what happened, who did it, and which versions were involved.
+*Enforced by:* [define-core-run-job-event-model](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-core-run-job-event-model)
 
-### 3. Policy is code-enforced, not prompt-enforced
+### 3. Evidence over confidence — and output has modalities
 
-Permissions, secrets, network, filesystem, deployment, and capability activation are gated by the controller and workers — not by instructions in a prompt that a model may ignore. Prompts guide; policy decides.
-*Enforced by:* `define-artifacts-verifiers-policy`, `define-archon-adapter`
+A job is done when its work *verifies* in its own modality — artifact stored, message delivered, or effect confirmed — never on an agent's say-so. Not all output is a file.
+*Enforced by:* [define-artifacts-verifiers-policy](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-artifacts-verifiers-policy) (output kinds: artifact / stream / effect)
 
-### 4. Agent-created capabilities are proposals, not live assets
+### 4. Adversarial review is first-class, with real isolation
 
-When an agent produces a new tool, workflow, or persona, it becomes a proposal artifact — never a live capability — until schema validation, sandbox dry-run, review, and approval pass. No agent installs itself into production.
-*Enforced by:* `define-capability-registry-model`, `define-archon-adapter`
+Review is a workflow gate, not a prompt: reviewer jobs see only the artifacts handed to them, and their findings are structured evidence that can block downstream work.
+*Enforced by:* [define-core-run-job-event-model](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-core-run-job-event-model)
 
-### 5. Capabilities are versioned, pinned, and provenance-tracked
+### 5. Policy is code-enforced, not prompt-enforced
 
-Runs resolve exact capability versions and reproduce against what they resolved. Images and snapshots are content-addressed; nothing backs a workspace without recorded provenance. Audit is built in, not bolted on.
-*Enforced by:* `define-capability-registry-model`, `define-image-and-snapshot-store`
+Permissions, secrets, network, filesystem, deployment, and capability activation are gated by the controller, not by a prompt a model may ignore. Prompts guide; policy decides.
+*Enforced by:* [define-artifacts-verifiers-policy](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-artifacts-verifiers-policy), [define-archon-adapter](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-archon-adapter)
 
-### 6. The harness is user-owned, extensible, and scope-governed
+### 6. Agent-created capabilities are proposals, not live assets
 
-Skills, tools, proprietary and internal data sources, commands, and secrets are first-class capabilities you add and compose — connected once and governed, not bolted onto each agent — drawn from a governed supply chain of builtins, open packs, and third-party marketplace providers. Every addition and override is controlled by scope and policy.
-*Enforced by:* `define-client-server-runtime-config-sources`, `define-enterprise-admin-marketplace-sessions`, `define-capability-registry-model`
+An agent-produced tool, workflow, or persona is a proposal until schema validation, sandbox dry-run, review, and approval pass. No agent installs itself into production.
+*Enforced by:* [define-capability-registry-model](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-capability-registry-model), [define-archon-adapter](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-archon-adapter)
 
-### 7. Local-first, distributed-ready — adapters change, concepts don't
+### 7. Capabilities are versioned, pinned, and provenance-tracked
 
-It runs on one machine with SQLite and the filesystem, and scales to Postgres, object stores, queues, and worker pools by swapping adapters. The run/job/capability concepts are identical in both modes.
-*Enforced by:* `define-oktopus-platform-roadmap`, the upgrade-path section of every change
+Runs pin exact capability versions and reproduce against them; images and snapshots are content-addressed, and nothing backs a workspace without provenance.
+*Enforced by:* [define-capability-registry-model](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-capability-registry-model), [define-image-and-snapshot-store](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-image-and-snapshot-store)
 
-### 8. Adversarial review is first-class, with real isolation
+### 8. The harness is user-owned, extensible, and scope-governed
 
-Review is a workflow gate, not a casual prompt. Reviewer jobs run with controller-enforced context isolation — they see only the artifacts explicitly handed to them — and their findings are structured evidence that can block downstream work.
-*Enforced by:* `define-core-run-job-event-model`
+Skills, tools, data sources, commands, and secrets are first-class capabilities you add and compose — connected once, governed by scope and policy — from a supply chain of builtins, open packs, and third-party providers.
+*Enforced by:* [define-client-server-runtime-config-sources](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-client-server-runtime-config-sources), [define-enterprise-admin-marketplace-sessions](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-enterprise-admin-marketplace-sessions), [define-capability-registry-model](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-capability-registry-model)
 
-### 9. Everything is evented and auditable
+### 9. Local-first, distributed-ready — adapters change, concepts don't
 
-Every state transition emits an append-only event. State tables answer "what is true now"; the event log is the audit and debug truth. You can always reconstruct what happened, who did it, and which capability versions were involved.
-*Enforced by:* `define-core-run-job-event-model`
+It runs on one machine (SQLite + filesystem) and scales to Postgres, object stores, queues, and worker pools by swapping adapters; the run/job/capability concepts are identical in both.
+*Enforced by:* [define-oktopus-platform-roadmap](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-oktopus-platform-roadmap), and the upgrade-path section of every change
 
 ## Two axes of work
 
-Because agents are interchangeable workers, "what kind of work an agent does" resolves to two orthogonal axes rather than a fixed product category:
+Work spans two independent axes, not a fixed product category:
 
 - **Engagement lifecycle** — one-shot, interactive, long-running (start/pause/resume), scheduled, event-triggered.
 - **Output modality** — artifact, stream, or effect.
