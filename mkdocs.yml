@@ -35,6 +35,7 @@ theme:
 nav:
   - Home: index.md
   - Manifesto: manifesto.md
+  - Why a control plane: why.md
   - Concepts: concepts.md
   - Extending the Harness: extending.md
   - Specifications: specifications.md

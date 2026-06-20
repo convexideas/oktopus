@@ -4,9 +4,16 @@
 
 ## The problem
 
-Your agent conversations, your accumulated context, and your tools are trapped inside whichever vendor you used. ChatGPT holds your threads. Claude holds its own. Cursor holds another. Switch tools and you lose the history, the memory, and any say over how the work was governed. Worse, each vendor integrates with the world *they* choose — public APIs, popular SaaS. None of them will ever connect to your internal data lake, your bespoke tools, or your private systems.
+When an organization adopts agents, the work fragments immediately. Everyone reaches for a different tool, and each one is a silo with no shared control:
 
-In the agentic era this is backwards. The agent is the interchangeable part. Your conversations, your memory, your capabilities, and your governance are the durable assets — and they should belong to you, not to a model vendor.
+- **No standardization.** Every person runs agents their own way. There is no shared, repeatable definition of how a task should be done.
+- **No shared knowledge.** What one agent produces or learns stays trapped in one person's tool. The organization can't accumulate or reuse it.
+- **No enforceable policy.** Permissions, approvals, and guardrails live in prompts — advisory at best — not in anything that can actually stop an unsafe action.
+- **No compliance visibility.** There is no record of what ran, on whose data, under which controls. You cannot audit or monitor what you cannot see.
+
+And no vendor agent will reach your internal systems: your data lake, your bespoke tools, and your private APIs are off-limits to tools built to integrate with someone else's world.
+
+The agent is the interchangeable part. The durable, organization-critical layer — standardized workflows, shared knowledge, enforced policy, and an auditable record — has nowhere to live. That layer should belong to you. ([Why a control plane](why.md) breaks down each problem: how it's handled today, and what changes.)
 
 ## The inversion
 
@@ -14,17 +21,21 @@ Oktopus is a control plane that owns the durable layer and treats agent runtimes
 
 > **The control plane owns capabilities and memory; agents plug in as workers.**
 
-From that root, four things become yours:
+The agent is interchangeable; everything that matters stays with you.
 
-1. **Own your context.** Runs, threads, memory, artifacts, and evidence live in the control plane — vendor-agnostic, portable, auditable. Change the agent without losing the work.
+## What it provides
 
-2. **Own and extend your harness.** Your skills, tools, commands, and secrets are first-class capabilities you add and compose — not a fixed menu chosen by a vendor.
+Concrete capabilities, each answering a problem above:
 
-3. **Plug in your proprietary world.** Internal data sources and tooling that no vendor agent supports connect through governed adapters, custom tools, MCP servers, and knowledge sources.
+- **Policy enforcement** — guardrails on tools, secrets, actions, and process steps, evaluated in code rather than prompts, and configurable hard / soft / waivable.
+- **Governance** — capabilities are scoped, versioned, and approval-gated; agent-created ones stay proposals until reviewed. You control who can add, override, or run what.
+- **Standardization & reuse** — workflows and capabilities are shared registry entries, repeatable across the organization.
+- **Auditability** — every state transition is an append-only event; outputs are captured as evidence.
+- **Extensibility** — bring your own skills, tools, commands, secrets, and proprietary or internal systems as first-class capabilities.
+- **Distribution** — share and consume capabilities and workflows across teams, and from a governed marketplace of open and third-party providers.
+- **Portability** — runs, memory, and artifacts live in the control plane, vendor-agnostic.
 
-4. **Consume a governed supply chain.** Capabilities flow from platform builtins, open packs, third-party marketplace providers, and your own internal systems — all through one registry with the same trust, provenance, scope, and policy gates.
-
-And in an organization, every one of these is **scope-governed**: who can add, override, or activate what is controlled per org, client, project, and run.
+In an organization, all of it is scope-governed — per org, client, project, and run.
 
 ## What makes this real
 

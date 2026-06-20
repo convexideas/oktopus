@@ -46,4 +46,4 @@ Swap adapters: Postgres, object store, queue/event backend, remote/containerized
 ## Beyond
 CI/CD, telemetry/AIOps, documentation, and client-inference solution packs — forward-looking requirements owned by `define-oktopus-platform-roadmap`, built on the proven spine.
 
-Speculative (not committed, unspecced): agent-app distribution — host agent controllers as governed, hosted capabilities, turning the control plane into a distribution mechanism for agentic apps.
+Speculative (not committed, unspecced): hosted agent apps — teams package and run agent controllers as governed, hosted capabilities, shared like any other capability.
