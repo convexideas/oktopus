@@ -4,7 +4,7 @@ This is the heart of the value proposition. Oktopus is not a fixed agent with a 
 
 ## Connect your proprietary world
 
-Off-the-shelf agent vendors integrate with what they choose — public APIs, popular SaaS. They will never natively reach your **internal data lake, your bespoke internal tools, your private APIs, your domain systems**. That gap is precisely what Oktopus fills.
+Off-the-shelf agents reach internal systems only through per-tool hooks — an MCP server here, a plugin there — bolted on, ungoverned, and re-wired for every vendor you use. Oktopus makes that integration **first-class**: connect a system once as a governed capability, and every agent uses it under the same policy and scope.
 
 Proprietary and internal systems plug in through:
 

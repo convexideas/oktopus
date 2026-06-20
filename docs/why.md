@@ -38,9 +38,9 @@ Agents are easy to adopt and hard to govern. Below are the problems organization
 
 **Problem.** Agents need to reach internal systems — data lakes, bespoke tools, private APIs.
 
-**Today.** Vendor agents integrate the systems they choose; yours are off-limits.
+**Today.** Each vendor offers its own hook — an MCP server, a plugin — so it's possible, but bolted on per tool, ungoverned, and re-wired for every agent.
 
-**With a control plane.** Internal systems plug in as governed capabilities — adapters, custom tools, MCP servers, knowledge sources — versioned and scoped like any other.
+**With a control plane.** Internal systems plug in as governed capabilities — adapters, custom tools, MCP servers, knowledge sources — connected once and reused across agents, versioned and scoped like any other.
 
 ## Vendor lock-in & portability
 

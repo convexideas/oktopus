@@ -11,7 +11,7 @@ When an organization adopts agents, the work fragments immediately. Everyone rea
 - **No enforceable policy.** Permissions, approvals, and guardrails live in prompts — advisory at best — not in anything that can actually stop an unsafe action.
 - **No compliance visibility.** There is no record of what ran, on whose data, under which controls. You cannot audit or monitor what you cannot see.
 
-And no vendor agent will reach your internal systems: your data lake, your bespoke tools, and your private APIs are off-limits to tools built to integrate with someone else's world.
+And reaching your internal systems — your data lake, your bespoke tools, your private APIs — means bolting a custom hook onto each vendor's agent: possible, but redone per tool and ungoverned.
 
 The agent is the interchangeable part. The durable, organization-critical layer — standardized workflows, shared knowledge, enforced policy, and an auditable record — has nowhere to live. That layer should belong to you. ([Why a control plane](why.md) breaks down each problem: how it's handled today, and what changes.)
 
@@ -31,7 +31,7 @@ Concrete capabilities, each answering a problem above:
 - **Governance** — capabilities are scoped, versioned, and approval-gated; agent-created ones stay proposals until reviewed. You control who can add, override, or run what.
 - **Standardization & reuse** — workflows and capabilities are shared registry entries, repeatable across the organization.
 - **Auditability** — every state transition is an append-only event; outputs are captured as evidence.
-- **Extensibility** — bring your own skills, tools, commands, secrets, and data sources (internal or third-party) as first-class capabilities, including systems no vendor agent reaches.
+- **Extensibility** — bring your own skills, tools, commands, secrets, and data sources (internal or third-party) as first-class, governed capabilities — connected once and reused by every agent, not re-wired per tool.
 - **Distribution** — share and consume capabilities and workflows across teams, and from a governed marketplace of open and third-party providers.
 - **Portability** — runs, artifacts, and scoped memory (user, team, org) live in the control plane. Context transfers across agents: switch the runtime, keep the context.
 
@@ -68,7 +68,7 @@ Runs resolve exact capability versions and reproduce against what they resolved.
 
 ### 6. The harness is user-owned, extensible, and scope-governed
 
-Skills, tools, proprietary and internal data sources, commands, and secrets are first-class capabilities you add and compose — including systems no vendor agent supports — drawn from a governed supply chain of builtins, open packs, and third-party marketplace providers. Every addition and override is controlled by scope and policy.
+Skills, tools, proprietary and internal data sources, commands, and secrets are first-class capabilities you add and compose — connected once and governed, not bolted onto each agent — drawn from a governed supply chain of builtins, open packs, and third-party marketplace providers. Every addition and override is controlled by scope and policy.
 *Enforced by:* `define-client-server-runtime-config-sources`, `define-enterprise-admin-marketplace-sessions`, `define-capability-registry-model`
 
 ### 7. Local-first, distributed-ready — adapters change, concepts don't
