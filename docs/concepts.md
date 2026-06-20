@@ -55,6 +55,8 @@ The controller owns state; workers are disposable and lease bounded work.
 
 A runtime runs a persona (a harness) in an environment, using tools/adapters and skills, under policy, producing outputs gated by verifiers. A workflow composes many personas.
 
+*Runtime* here means the agent engine, not the sandbox the work runs in — that boundary is the *environment*.
+
 You rarely build a runtime: take an off-the-shelf harness (Claude Code, Codex, …) and customize it through the standard primitives — the same persona, skills, tools, and policy apply on top of whatever runtime executes. The harness is shaped by portable patterns, not configured ad hoc per person.
 
 → Spec: `define-capability-registry-model`
