@@ -35,13 +35,19 @@ Unlike a vendor's closed plugin store, **every capability — open, third-party,
 
 ## Capabilities
 
-The first-class, versioned building blocks you add and compose:
+The building blocks you add and compose — each a versioned, governed registry entry (a manifest with source, trust level, version, and policy):
 
-`tool` · `skill` · `skillpack` · `persona` · `workflow` · `verifier` · `environment` · `policy` · `runtime` · `adapter` · `solution_pack`
+- **Runtime** — the agent/model engine; off-the-shelf (Claude Code, Codex, shell) or custom.
+- **Persona** — a single-role harness: role, allowed tools, skills, output contract, limits.
+- **Tool / Adapter** — callable actions and integration bridges.
+- **Skill** — a reusable procedure a persona follows.
+- **Workflow** — composition of personas/jobs into multi-step work.
+- **Verifier / Policy / Environment** — evidence checks, code-enforced rules, and execution boundaries.
+- **Packs** — `skillpack` and `solution_pack` bundle the above for import and sharing.
 
-Each carries a manifest with source, trust level, version, and policy. Imported packs are read-only by default; local definitions can shadow them by policy.
+You rarely build a runtime: take an off-the-shelf harness and customize it through these primitives — your personas, skills, tools, and policy apply on top of whatever runtime executes, so the harness is shaped by portable patterns instead of per-person config. Imported packs are read-only by default; local definitions can shadow them by policy.
 
-→ Spec: `define-capability-registry-model`
+→ Spec: `define-capability-registry-model`. See [Concepts](concepts.md) for the full primitive model.
 
 ## Configuration and the scope hierarchy
 

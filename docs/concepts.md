@@ -32,9 +32,32 @@ The controller owns state; workers are disposable and lease bounded work.
 - **Worker** — a process that registers, advertises capabilities, and leases jobs.
 - **Lease** — a bounded, atomic assignment of a job to one worker.
 - **Artifact / Event** — durable evidence and the append-only audit log.
-- **Capability** — a versioned tool, skill, persona, workflow, verifier, environment, policy, runtime, adapter, or solution pack.
+- **Capability** — any versioned, governed unit in the registry (the primitives below).
 
 → Specs: `define-core-run-job-event-model`, `define-worker-lease-protocol`
+
+## Capabilities & primitives
+
+**Capability** is a governance term, not a functional one: any versioned, governed unit in the registry — all scoped and trust-gated the same way. The functional primitives underneath it:
+
+| Primitive | What it is |
+|---|---|
+| **Runtime** | the engine that executes work — off-the-shelf (Claude Code, Codex, Cursor, shell) or custom |
+| **Persona** | a single-role **harness**: role + allowed tools + skills + output contract + limits |
+| **Tool / Adapter** | callable actions and integration bridges a persona may use |
+| **Skill** | a reusable procedure a persona follows |
+| **Workflow** | a DAG composing personas/jobs into multi-step work |
+| **Verifier** | an evidence check that gates acceptance |
+| **Policy** | code-enforced permissions, approvals, budgets |
+| **Environment** | the execution boundary (local, worktree, container, VM) |
+
+**Packaging** (bundles, not primitives): **skillpack**, **solution pack**.
+
+A runtime runs a persona (a harness) in an environment, using tools/adapters and skills, under policy, producing outputs gated by verifiers. A workflow composes many personas.
+
+You rarely build a runtime: take an off-the-shelf harness (Claude Code, Codex, …) and customize it through the standard primitives — the same persona, skills, tools, and policy apply on top of whatever runtime executes. The harness is shaped by portable patterns, not configured ad hoc per person.
+
+→ Spec: `define-capability-registry-model`
 
 ## Evidence: artifact, stream, effect
 
@@ -81,20 +104,6 @@ The spine isn't coding-specific. A workflow is any DAG of capabilities, in any d
 - **Inbound label processing.** A message channel drops product-label photos → a vision/OCR tool extracts fields → a database adapter writes the rows (effect) → an eval verifier checks them → the run completes on that evidence.
 
 Both use the same primitives: input channels, registry capabilities, a job DAG, output modalities, and verifier-gated completion. A coding agent is one workflow among many — the platform runs whatever harness you compose.
-
-## Capability graph
-
-How the capability kinds compose:
-
-```text
-workflow uses personas
-workflow uses skills
-persona uses skills
-skill uses tools
-tool emits artifacts
-verifier checks artifacts
-memory records outcomes
-```
 
 ## Local-first to distributed
 
