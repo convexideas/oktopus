@@ -34,6 +34,14 @@ Agents are easy to adopt and hard to govern. Below are the problems organization
 
 **With a control plane.** Every state transition emits an append-only event, and outputs are captured as evidence. The timeline, the data touched, and the capability versions used are all on the record.
 
+## Credentials & usage
+
+**Problem.** Teams need API keys and licenses to run agents, and the organization needs to control that access and account for the spend.
+
+**Today.** Keys live in scattered `.env` files and personal accounts — no central control, no attribution, no view of usage or cost.
+
+**With a control plane.** Keys and licenses are held and distributed centrally, scoped per team and project and policy-gated on use. Access is attributable through the event log, and spend is governed against budgets.
+
 ## Proprietary & internal integration
 
 **Problem.** Agents need to reach internal systems — data lakes, bespoke tools, private APIs.

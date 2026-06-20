@@ -55,9 +55,9 @@ Higher scope can narrow permissions freely; **broadening** permissions (more too
 
 → Spec: `define-client-server-runtime-config-sources`
 
-## Secrets and data sources
+## Secrets, credentials, and data sources
 
-Secrets are referenced, never embedded — workspace profiles carry secret references, and `secret_read` is a policy-gated action. Data and knowledge sources — internal (vaults, vector stores, private APIs) and third-party (external APIs, SaaS feeds) — attach with access policy and redaction, so sensitive data is governed before any worker sees it.
+Secrets and API keys are distributed centrally and referenced, never embedded — held by the control plane, scoped per org/team/project, and policy-gated on use (`secret_read`), so access is attributable in the event log and governable against budgets. Data and knowledge sources — internal (vaults, vector stores, private APIs) and third-party (external APIs, SaaS feeds) — attach with access policy and redaction, so sensitive data is governed before any worker sees it.
 
 → Specs: `define-client-server-runtime-config-sources`, `define-artifacts-verifiers-policy`
 

@@ -29,6 +29,7 @@ Concrete capabilities, each answering a problem above:
 
 - **Policy enforcement** — guardrails on tools, secrets, actions, and process steps, evaluated in code rather than prompts, and configurable hard / soft / waivable.
 - **Governance** — capabilities are scoped, versioned, and approval-gated; agent-created ones stay proposals until reviewed. You control who can add, override, or run what.
+- **Credentials & budgets** — distribute and scope API keys and licenses centrally instead of scattering them across everyone's environment; access is policy-gated, attributable in the event log, and spend is governed against budgets.
 - **Standardization & reuse** — workflows and capabilities are shared registry entries, repeatable across the organization.
 - **Auditability** — every state transition is an append-only event; outputs are captured as evidence.
 - **Extensibility** — bring your own skills, tools, commands, secrets, and data sources (internal or third-party) as first-class, governed capabilities — connected once and reused by every agent, not re-wired per tool.
