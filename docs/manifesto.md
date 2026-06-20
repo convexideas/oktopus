@@ -27,7 +27,7 @@ The agent is interchangeable; everything that matters stays with you.
 
 Concrete capabilities, each answering a problem above:
 
-- **Policy enforcement** — guardrails on tools, secrets, actions, and process steps, evaluated in code rather than prompts, and configurable hard / soft / waivable.
+- **Policy enforcement** — access and process gates (tool use, secret reads, network/filesystem scope, task ordering, prerequisites, destructive actions, deployment, budgets) are decided in code at execution time, not left to the prompt, and are configurable hard / soft / waivable. Conduct *within* a step isn't code-enforced — it's gated by verifiers on the output, not trusted.
 - **Governance** — capabilities are scoped, versioned, and approval-gated; agent-created ones stay proposals until reviewed. You control who can add, override, or run what.
 - **Credentials & budgets** — distribute and scope API keys and licenses centrally instead of scattering them across everyone's environment; access is policy-gated, attributable in the event log, and spend is governed against budgets.
 - **Standardization & reuse** — workflows and capabilities are shared registry entries, repeatable across the organization.
