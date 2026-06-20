@@ -58,6 +58,12 @@ Interactive and long-running work runs in a **workspace** — a persistent, warm
 
 → Specs: `define-enterprise-admin-marketplace-sessions`, `define-image-and-snapshot-store`
 
+## Memory
+
+Memory is scoped — user, team, and org — and owned by the control plane, not the agent. It persists across runs and is reused by whichever runtime executes next, so context carries over when you change agents.
+
+→ Spec: `define-enterprise-admin-marketplace-sessions`
+
 ## Two axes of work
 
 Work is described by two orthogonal axes, not a fixed category:

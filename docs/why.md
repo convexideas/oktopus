@@ -44,11 +44,11 @@ Agents are easy to adopt and hard to govern. Below are the problems organization
 
 ## Vendor lock-in & portability
 
-**Problem.** Context and memory are trapped inside one vendor; switching loses history and control.
+**Problem.** Context and memory, individual and team, are trapped inside one vendor; switching loses history and control.
 
 **Today.** Each tool owns its own threads; there's no portable layer.
 
-**With a control plane.** Runs, memory, artifacts, and evidence live in the control plane, vendor-agnostic. The agent is the interchangeable part.
+**With a control plane.** Runs, artifacts, evidence, and scoped memory (user, team, org) live in the control plane. Context transfers across agents — the agent is the interchangeable part.
 
 ## The boundary
 

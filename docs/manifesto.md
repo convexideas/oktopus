@@ -33,7 +33,7 @@ Concrete capabilities, each answering a problem above:
 - **Auditability** — every state transition is an append-only event; outputs are captured as evidence.
 - **Extensibility** — bring your own skills, tools, commands, secrets, and data sources (internal or third-party) as first-class capabilities, including systems no vendor agent reaches.
 - **Distribution** — share and consume capabilities and workflows across teams, and from a governed marketplace of open and third-party providers.
-- **Portability** — runs, memory, and artifacts live in the control plane, vendor-agnostic.
+- **Portability** — runs, artifacts, and scoped memory (user, team, org) live in the control plane. Context transfers across agents: switch the runtime, keep the context.
 
 In an organization, all of it is scope-governed — per org, client, project, and run.
 
