@@ -1,0 +1,58 @@
+site_name: Oktopus
+site_description: A governed, agent-agnostic operations control plane.
+site_url: https://convexideas.github.io/oktopus/
+repo_url: https://github.com/convexideas/oktopus
+repo_name: convexideas/oktopus
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.top
+    - navigation.sections
+    - content.code.copy
+    - search.suggest
+    - search.highlight
+    - toc.follow
+
+nav:
+  - Home: index.md
+  - Manifesto: manifesto.md
+  - Concepts: concepts.md
+  - Extending the Harness: extending.md
+  - Specifications: specifications.md
+  - Roadmap: roadmap.md
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.details
+  - tables
+
+plugins:
+  - search

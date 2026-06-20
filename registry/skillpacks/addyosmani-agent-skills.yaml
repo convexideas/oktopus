@@ -1,0 +1,26 @@
+kind: skillpack
+name: addyosmani-agent-skills
+version: 0.1.0
+status: active
+description: Production engineering lifecycle skills, personas, and commands imported from addyosmani/agent-skills.
+source:
+  type: git
+  uri: https://github.com/addyosmani/agent-skills
+  ref: a5f0b176381e9fea24a61aefc243506686aa2435
+imports:
+  skills:
+    - skills/*/SKILL.md
+  personas:
+    - agents/*.md
+  workflows:
+    - commands/*.toml
+    - .claude/commands/*.md
+    - .gemini/commands/*.toml
+  references:
+    - references/*.md
+policy:
+  imported_capabilities: read_only
+  custom_overrides_allowed: true
+  persona_can_spawn_personas: false
+  workflow_can_spawn_workflows: proposal_only
+  tool_can_register_tools: proposal_only

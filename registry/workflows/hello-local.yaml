@@ -1,0 +1,14 @@
+kind: workflow
+name: hello-local
+version: 0.1.0
+status: active
+description: Minimal local workflow that writes one artifact through a shell job.
+steps:
+  - id: hello
+    name: hello
+    kind: shell
+    runtime: runtime:shell
+    command: 'mkdir -p "$OKTOPUS_ARTIFACT_DIR" && echo "hello from oktopus" > "$OKTOPUS_ARTIFACT_DIR/hello.txt"'
+    outputs:
+      artifacts:
+        - hello.txt

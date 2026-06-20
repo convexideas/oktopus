@@ -1,0 +1,26 @@
+kind: adapter
+name: archon
+version: 0.1.0
+status: active
+description: Adapter for invoking Archon structured AI workflows under Oktopus control.
+entrypoint:
+  type: cli
+  command: archon
+modes:
+  - proposal
+  - execute
+  - catalog_import
+permissions:
+  filesystem: scoped_workspace
+  network: policy_controlled
+  secrets: explicit_allowlist
+policy:
+  no_auto_install: true
+  active_registry_write: approval_required
+  trigger_mutation: approval_required
+outputs:
+  artifacts:
+    - archon-command.json
+    - archon-output.json
+    - archon-report.md
+    - proposals/

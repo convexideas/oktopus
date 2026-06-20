@@ -1,0 +1,7 @@
+.oktopus/
+.lean-ctx/
+runs/*
+!runs/.gitkeep
+
+# MkDocs build output
+site/

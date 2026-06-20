@@ -1,0 +1,15 @@
+kind: verifier
+name: artifact-exists
+version: 0.1.0
+status: active
+description: Verify required run artifacts exist before a workflow step is accepted.
+entrypoint:
+  type: builtin
+  name: artifact_exists
+inputs:
+  fields:
+    - paths
+outputs:
+  fields:
+    - passed
+    - missing

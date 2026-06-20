@@ -1,0 +1,12 @@
+kind: runtime
+name: shell
+version: 0.1.0
+status: active
+description: Local shell runtime for MVP jobs and verifier commands.
+entrypoint:
+  type: builtin
+  name: shell
+permissions:
+  filesystem: scoped_workspace
+  network: policy_controlled
+  secrets: explicit_allowlist

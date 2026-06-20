@@ -1,0 +1,10 @@
+# Python tooling config for Oktopus.
+# Oktopus itself is a Go project; this file only declares the docs toolchain
+# (MkDocs Material) used to build the GitBook under docs/. PEP 735 dependency
+# groups keep these deps declared without pretending this is a distributable
+# Python package.
+
+[dependency-groups]
+docs = [
+  "mkdocs-material>=9.5,<10",
+]

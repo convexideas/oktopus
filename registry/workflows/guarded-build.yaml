@@ -1,0 +1,65 @@
+kind: workflow
+name: guarded-build
+version: 0.1.0
+status: active
+description: Stub guarded build workflow with adversarial review fan-out and synthesis.
+steps:
+  - id: build-stub
+    name: Build stub
+    kind: agent
+    runtime: runtime:pi
+    outputs:
+      artifacts:
+        - build-report.md
+
+  - id: correctness-review-stub
+    name: Correctness review stub
+    kind: adversarial_review
+    runtime: runtime:pi
+    needs:
+      - build-stub
+    persona: persona:code-reviewer
+    outputs:
+      artifacts:
+        - correctness-review.md
+
+  - id: security-review-stub
+    name: Security review stub
+    kind: adversarial_review
+    runtime: runtime:pi
+    needs:
+      - build-stub
+    persona: persona:security-auditor
+    outputs:
+      artifacts:
+        - security-review.md
+
+  - id: test-gap-review-stub
+    name: Test gap review stub
+    kind: adversarial_review
+    runtime: runtime:pi
+    needs:
+      - build-stub
+    persona: persona:test-engineer
+    outputs:
+      artifacts:
+        - test-gap-review.md
+
+  - id: review-synthesis-stub
+    name: Review synthesis stub
+    kind: synthesis
+    runtime: runtime:shell
+    needs:
+      - correctness-review-stub
+      - security-review-stub
+      - test-gap-review-stub
+    outputs:
+      artifacts:
+        - review-synthesis.md
+
+  - id: evidence-check
+    name: Evidence check
+    kind: verifier
+    uses: verifier:artifact-exists
+    needs:
+      - review-synthesis-stub
