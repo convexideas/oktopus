@@ -13,7 +13,7 @@ Oktopus should become the control plane above these capabilities: workflow DAGs,
 
 ## What Changes
 
-- Define Oktopus as a standalone agentic operations control plane.
+- Define Oktopus as a standalone agentic orchestration control plane.
 - Treat Pi and other agent CLIs as worker runtime adapters, not the platform core.
 - Define a local-first architecture that can evolve into a distributed controller/worker system.
 - Define first-class capabilities: tools, skills, personas, workflows, verifiers, environments, policies, and solution packs.

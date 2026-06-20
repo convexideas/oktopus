@@ -1,22 +1,20 @@
 # Oktopus
 
-**A governed, agent-agnostic operations control plane.** Own your conversations, memory, and capabilities — plug any agent runtime in as an interchangeable worker.
+**A vendor-agnostic control plane for agent orchestration and governance.** Own your conversations, memory, and capabilities — plug any agent runtime in as an interchangeable worker.
 
-Oktopus inverts the vendor model: instead of a model vendor owning your threads, context, and toolset, the control plane owns the durable layer — runs, memory, artifacts, evidence, capabilities, and policy — while agents (Pi, Claude Code, Codex CLI, OpenCode, Kiro, and others) plug in as workers.
+Oktopus inverts the vendor model: instead of a model vendor owning your threads, context, and toolset, the control plane owns the durable layer — runs, memory, artifacts, evidence, capabilities, and policy — while agent runtimes plug in as interchangeable workers.
 
-## This book has four layers
+## Sections
 
-This documentation moves from conviction to concrete, each layer linking down to the next:
+| Section | What it covers |
+|---|---|
+| [Manifesto](manifesto.md) | Why Oktopus exists, and its principles |
+| [Concepts](concepts.md) | The model — entities, workers, evidence |
+| [Extending the Harness](extending.md) | Adding capabilities, sources, and governance |
+| [Specifications](specifications.md) | Normative requirements; the source of truth |
+| [Roadmap](roadmap.md) | Build phases |
 
-| Layer | What it answers | Where |
-|---|---|---|
-| **[Manifesto](manifesto.md)** | Why Oktopus must exist; the convictions | the abstract |
-| **[Concepts](concepts.md)** | What it is — the mental model and definitions | the system in depth |
-| **[Extending the Harness](extending.md)** | How you make it yours — capabilities, sources, governance | the value pillar |
-| **[Specifications](specifications.md)** | How it must behave — normative requirements | the bridge to code |
-| **[Roadmap](roadmap.md)** | What gets built, in what order | the plan |
-
-The specifications are the single source of truth for behavior; this book links to them rather than restating them.
+Specs are the source of truth for behavior; the book links to them rather than restating them.
 
 ## The thesis in one line
 

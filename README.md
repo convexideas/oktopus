@@ -1,6 +1,6 @@
 # Oktopus
 
-Single-machine first, distributed-ready agentic operations control plane. Agent runtimes like Pi, Claude Code, Codex, shell, containers, and inference services plug in as workers.
+Single-machine first, distributed-ready: a vendor-agnostic control plane for agent orchestration and governance. Agent runtimes plug in as interchangeable workers.
 
 ## Step 1: Capability Registry
 

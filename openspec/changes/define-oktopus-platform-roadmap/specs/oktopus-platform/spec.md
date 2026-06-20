@@ -1,8 +1,8 @@
 ## ADDED Requirements
 
-### Requirement: Governed Agentic Operations Control Plane
+### Requirement: Governed Agentic Orchestration Control Plane
 
-Oktopus SHALL provide a standalone control plane for governed agentic operations across engineering, CI/CD, telemetry-driven operations, documentation, and client-specific inference workflows.
+Oktopus SHALL provide a standalone control plane for governed agentic orchestration across engineering, CI/CD, telemetry-driven operations, documentation, and client-specific inference workflows.
 
 #### Scenario: Treat agent runtimes as adapters
 

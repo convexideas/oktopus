@@ -1,5 +1,5 @@
 {
-  description = "Oktopus - a governed, agent-agnostic operations control plane";
+  description = "Oktopus - a vendor-agnostic control plane for agent orchestration and governance";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";

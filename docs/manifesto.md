@@ -16,7 +16,7 @@ Oktopus is a control plane that owns the durable layer and treats agent runtimes
 
 From that root, four things become yours:
 
-1. **Own your context.** Runs, threads, memory, artifacts, and evidence live in the control plane — agent-agnostic, portable, auditable. Change the agent without losing the work.
+1. **Own your context.** Runs, threads, memory, artifacts, and evidence live in the control plane — vendor-agnostic, portable, auditable. Change the agent without losing the work.
 
 2. **Own and extend your harness.** Your skills, tools, commands, and secrets are first-class capabilities you add and compose — not a fixed menu chosen by a vendor.
 
@@ -82,7 +82,7 @@ Because agents are interchangeable workers, "what kind of work an agent does" re
 - **Engagement lifecycle** — one-shot, interactive, long-running (start/pause/resume), scheduled, event-triggered.
 - **Output modality** — artifact, stream, or effect.
 
-A batch report is *one-shot × artifact*. A chat assistant is *interactive × stream*. A coding agent on a workspace you pause and resume is *long-running × effect*. The same spine serves all of them.
+A batch report is *one-shot × artifact*. But the axes are independent: an interactive session can stream a conversation *or* edit a codebase (*interactive × effect*), and an effect can be one-shot ("apply this fix") or long-running. Any lifecycle pairs with any modality, and the same spine serves them all.
 
 ## The stance
 

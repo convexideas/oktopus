@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define Oktopus as a governed, distributed-ready agentic operations control plane for engineering work, CI/CD automation, AIOps remediation, documentation workflows, and client-specific inference product harnesses.
+Define Oktopus as a governed, distributed-ready agentic orchestration control plane for engineering work, CI/CD automation, AIOps remediation, documentation workflows, and client-specific inference product harnesses.
 
 ## Requirements
 

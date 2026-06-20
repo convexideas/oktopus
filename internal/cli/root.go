@@ -22,8 +22,8 @@ func NewRootCommand() *cobra.Command {
 	opts := &Options{}
 	cmd := &cobra.Command{
 		Use:   "oktopus",
-		Short: "Governed agentic operations control plane",
-		Long:  "Oktopus is a local-first, distributed-ready control plane for agentic operations.",
+		Short: "Vendor-agnostic control plane for agent orchestration and governance",
+		Long:  "Oktopus is a local-first, distributed-ready, vendor-agnostic control plane for agent orchestration and governance.",
 	}
 
 	cmd.PersistentFlags().StringVar(&opts.DBPath, "db", defaultDBPath(), "SQLite database path")

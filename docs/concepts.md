@@ -65,7 +65,16 @@ Work is described by two orthogonal axes, not a fixed category:
 - **Engagement lifecycle** — one-shot · interactive · long-running · scheduled · event-triggered
 - **Output modality** — artifact · stream · effect
 
-A chat assistant is *interactive × stream*; a coding agent on a resumable workspace is *long-running × effect*. One spine serves all combinations.
+The axes are independent — any lifecycle pairs with any modality. An interactive session might stream a chat or edit code (effect); a one-shot job might write an artifact or apply a fix. One spine serves every combination.
+
+## Example workflows
+
+The spine isn't coding-specific. A workflow is any DAG of capabilities, in any domain:
+
+- **Morning news digest.** Scheduled trigger → a news-source tool plus a summarizer agent → delivered as a stream to your chat channel, or saved as an artifact.
+- **Inbound label processing.** A message channel drops product-label photos → a vision/OCR tool extracts fields → a database adapter writes the rows (effect) → an eval verifier checks them → the run completes on that evidence.
+
+Both use the same primitives: input channels, registry capabilities, a job DAG, output modalities, and verifier-gated completion. A coding agent is one workflow among many — the platform runs whatever harness you compose.
 
 ## Capability graph
 
