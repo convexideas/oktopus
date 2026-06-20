@@ -11,7 +11,7 @@ Proprietary and internal systems plug in through:
 - **Adapters** — bridges to internal systems (CI/CD, ticketing, telemetry, data stores).
 - **Custom tools** — your CLIs, scripts, services, and containers as first-class callable capabilities.
 - **MCP servers** — your proprietary MCP server is a governed entry point for private data and actions.
-- **Knowledge sources** — internal vaults, docs repos, vector stores, and private APIs.
+- **Data & knowledge sources** — internal (vaults, docs repos, vector stores, private APIs) or third-party (external APIs, SaaS data feeds).
 
 The platform defines the open socket; the specific connectors are implementations you (or providers) build — versioned and governed by the registry.
 
@@ -55,9 +55,9 @@ Higher scope can narrow permissions freely; **broadening** permissions (more too
 
 → Spec: `define-client-server-runtime-config-sources`
 
-## Secrets and knowledge sources
+## Secrets and data sources
 
-Secrets are referenced, never embedded — workspace profiles carry secret references, and `secret_read` is a policy-gated action. Knowledge sources (vaults, vector stores, internal APIs) attach with access policy and redaction so sensitive data is governed before any worker sees it.
+Secrets are referenced, never embedded — workspace profiles carry secret references, and `secret_read` is a policy-gated action. Data and knowledge sources — internal (vaults, vector stores, private APIs) and third-party (external APIs, SaaS feeds) — attach with access policy and redaction, so sensitive data is governed before any worker sees it.
 
 → Specs: `define-client-server-runtime-config-sources`, `define-artifacts-verifiers-policy`
 

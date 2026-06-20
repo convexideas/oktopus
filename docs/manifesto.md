@@ -31,7 +31,7 @@ Concrete capabilities, each answering a problem above:
 - **Governance** — capabilities are scoped, versioned, and approval-gated; agent-created ones stay proposals until reviewed. You control who can add, override, or run what.
 - **Standardization & reuse** — workflows and capabilities are shared registry entries, repeatable across the organization.
 - **Auditability** — every state transition is an append-only event; outputs are captured as evidence.
-- **Extensibility** — bring your own skills, tools, commands, secrets, and proprietary or internal systems as first-class capabilities.
+- **Extensibility** — bring your own skills, tools, commands, secrets, and data sources (internal or third-party) as first-class capabilities, including systems no vendor agent reaches.
 - **Distribution** — share and consume capabilities and workflows across teams, and from a governed marketplace of open and third-party providers.
 - **Portability** — runs, memory, and artifacts live in the control plane, vendor-agnostic.
 
