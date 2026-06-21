@@ -35,8 +35,8 @@ theme:
 nav:
   - Overview: oktopus.md
   - Concepts: concepts.md
-  - Extending the Harness: extending.md
-  - Specifications: specifications.md
+  - Extending: extending.md
+  - Specifications: specs.md
   - Roadmap: roadmap.md
 
 markdown_extensions:

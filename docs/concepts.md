@@ -1,6 +1,6 @@
 # Concepts
 
-The mental model for how Oktopus turns agent work into durable, governed, auditable operations. This is the *what it is* layer; behavioral detail lives in the [Specifications](specifications.md).
+The mental model for how Oktopus turns agent work into durable, governed, auditable operations. This is the *what it is* layer; behavioral detail lives in the [Specifications](specs.md).
 
 ## Mental model
 
