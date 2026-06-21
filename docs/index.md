@@ -4,16 +4,12 @@ Models come and go — harnesses endure.
 
 ## Pillars
 
-```mermaid
-flowchart TB
-    Harness(("Your harness"))
-    Harness --- Compose["Compose<br/>capabilities"]
-    Harness --- Connect["Connect<br/>systems"]
-    Harness --- Govern["Govern<br/>zero trust"]
-    Harness --- Monitor["Monitor<br/>end-to-end"]
-    Harness --- Own["Own<br/>memory"]
-```
+- **Compose** — capabilities
+- **Connect** — systems
+- **Govern** — zero trust
+- **Monitor** — end-to-end
+- **Own** — memory
 
 ## Read next
 
-[Oktopus](oktopus.md) — control plane for AI.
+[Oktopus](oktopus.md) — your global control plane for AI.
