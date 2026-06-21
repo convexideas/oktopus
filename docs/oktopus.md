@@ -1,6 +1,6 @@
 # Oktopus
 
-Oktopus is a vendor-agnostic control plane for agent orchestration, governance, and memory — how you [own the harness](index.md) in practice.
+Oktopus is a vendor-agnostic control plane for agent orchestration, governance, and context — how you [own the harness](index.md) in practice.
 
 The *model* is replaceable; the harness is yours — standardized where the organization needs repeatability, personalized where people need room to explore.
 
@@ -20,9 +20,9 @@ And reaching your internal systems — your data lake, your bespoke tools, your 
 
 Oktopus owns the durable layer and treats agent runtimes as interchangeable workers. One root conviction:
 
-> **The control plane owns capabilities and memory; agents plug in as workers.**
+> **The control plane owns capabilities and context; agents plug in as workers.**
 
-From there, five pillars — compose the work, connect your systems, govern the execution, monitor what happens, and own what persists:
+From there, five pillars — compose the work, connect your channels, manage execution, monitor what happens, and own what persists:
 
 ### Compose
 
@@ -35,7 +35,7 @@ From there, five pillars — compose the work, connect your systems, govern the 
 - **Inputs** — work arrives from chat, CLI, CI, alerts, tickets, schedules, or APIs. *Enforced by [define-client-server-runtime-config-sources](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-client-server-runtime-config-sources).*
 - **Outputs** — results land in pull requests, docs, incident rooms, dashboards, object stores, client portals, or wherever the workflow designates. *Enforced by [define-client-server-runtime-config-sources](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-client-server-runtime-config-sources), [define-enterprise-admin-marketplace-sessions](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-enterprise-admin-marketplace-sessions).*
 
-### Govern
+### Manage
 
 - **Policy enforcement** — access and process gates (tool use, secret reads, network/filesystem scope, task ordering, prerequisites, destructive actions, deployment, budgets) are decided in code at execution time, not left to the prompt, and are configurable as hard, soft, or waivable. The harness may not control every token inside a model call, but it controls what the model can access, what actions execute, and what evidence is required before work is accepted. *Enforced by [define-artifacts-verifiers-policy](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-artifacts-verifiers-policy), [define-archon-adapter](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-archon-adapter).*
 - **Governance** — capabilities are scoped, versioned, and approval-gated; agent-created ones stay proposals until reviewed. You control who can add, override, or run what — scoped per org, client, project, thread, and run. Standard workflows stay governed; exploratory agents stay customizable within policy. *Enforced by [define-capability-registry-model](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-capability-registry-model), [define-archon-adapter](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-archon-adapter).*

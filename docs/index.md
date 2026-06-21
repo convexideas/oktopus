@@ -5,10 +5,10 @@ Models come and go — harnesses endure.
 ## Pillars
 
 - **Compose** — capabilities
-- **Connect** — systems
-- **Govern** — zero trust
-- **Monitor** — end-to-end
-- **Own** — memory
+- **Connect** — channels
+- **Manage** — controls
+- **Monitor** — in-depth
+- **Own** — context
 
 ## Read next
 
