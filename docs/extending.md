@@ -38,7 +38,7 @@ Unlike a vendor's closed plugin store, **every capability — open, third-party,
 The building blocks you add and compose — each a versioned, governed registry entry (a manifest with source, trust level, version, and policy):
 
 - **Runtime** — the agent/model engine; off-the-shelf (Claude Code, Codex, shell) or custom.
-- **Persona** — a single-role harness: role, allowed tools, skills, output contract, limits.
+- **Persona** — a single-role operating profile: role, allowed tools, skills, output contract, limits.
 - **Tool / Adapter** — callable actions and integration bridges.
 - **Skill** — a reusable procedure a persona follows.
 - **Workflow** — composition of personas/jobs into multi-step work.
@@ -72,7 +72,7 @@ Secrets and API keys are distributed centrally and referenced, never embedded �
 In an organization, customization is bounded by control:
 
 - **Capability catalog** — the approved set an org publishes internally.
-- **Marketplace** — internal and **third-party providers** publish capabilities; consumption is governed by trust and scope.
+- **Marketplace** — internal and, eventually, **third-party providers** publish capabilities; consumption is governed by trust and scope.
 - **Standardized vs. user-custom modes** — admins can mandate fixed workflows/workspace profiles, or allow user customization within policy.
 - **Governance controls** — provenance, signing, approval gates, and audit on every addition and activation.
 

@@ -1,6 +1,8 @@
 # Oktopus
 
-Single-machine first, distributed-ready: a vendor-agnostic control plane for agent orchestration and governance. Agent runtimes plug in as interchangeable workers.
+Single-machine first, distributed-ready: a vendor-agnostic control plane for agent orchestration, governance, and context. Agent runtimes plug in as interchangeable workers.
+
+Project path: **principles → design → specs → roadmap → code**. Start with [docs/index.md](docs/index.md).
 
 ## Step 1: Capability Registry
 

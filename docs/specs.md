@@ -6,7 +6,7 @@ Each change is validated with `openspec validate --all --strict`.
 
 ## Reading order
 
-Changes add requirements to the single `oktopus-platform` spec and are archived in dependency order:
+Changes add requirements to the single `oktopus-platform` spec and are listed in dependency order:
 
 | # | Change | Owns |
 |---|---|---|

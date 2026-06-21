@@ -43,7 +43,7 @@ The controller owns state; workers are disposable and lease bounded work.
 | Primitive | What it is |
 |---|---|
 | **Runtime** | the engine that executes work — off-the-shelf (Claude Code, Codex, Cursor, shell) or custom |
-| **Persona** | a single-role **harness**: role + allowed tools + skills + output contract + limits |
+| **Persona** | a single-role operating profile: role + allowed tools + skills + output contract + limits |
 | **Tool / Adapter** | callable actions and integration bridges a persona may use |
 | **Skill** | a reusable procedure a persona follows |
 | **Workflow** | a DAG composing personas/jobs into multi-step work |
@@ -53,11 +53,11 @@ The controller owns state; workers are disposable and lease bounded work.
 
 **Packaging** (bundles, not primitives): **skillpack**, **solution pack**.
 
-A runtime runs a persona (a harness) in an environment, using tools/adapters and skills, under policy, producing outputs gated by verifiers. A workflow composes many personas.
+A runtime runs a persona in an environment, using tools/adapters and skills, under policy, producing outputs gated by verifiers. A workflow composes many personas.
 
 *Runtime* here means the agent engine, not the sandbox the work runs in — that boundary is the *environment*.
 
-You rarely build a runtime: take an off-the-shelf harness (Claude Code, Codex, …) and customize it through the standard primitives — the same persona, skills, tools, and policy apply on top of whatever runtime executes. The harness is shaped by portable patterns, not configured ad hoc per person.
+You rarely build a runtime: take an off-the-shelf harness (Claude Code, Codex, …) and customize it through the standard primitives — the same persona, skills, tools, and policy apply on top of whatever runtime executes. The harness is shaped by portable, governed patterns, not configured ad hoc per person.
 
 → Spec: `define-capability-registry-model`
 

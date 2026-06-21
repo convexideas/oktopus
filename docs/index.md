@@ -2,14 +2,20 @@
 
 Models come and go — harnesses endure.
 
+Oktopus is a vendor-agnostic control plane for agent orchestration, governance, and context. The project path is deliberate: **principles → design → specs → roadmap → code**.
+
 ## Pillars
 
-- **Compose** — capabilities
-- **Connect** — channels
-- **Manage** — controls
-- **Monitor** — in-depth
-- **Own** — context
+- **Compose** — reusable capabilities and workflows
+- **Connect** — inputs, outputs, tools, MCPs, and knowledge sources
+- **Manage** — policies, approvals, credentials, and budgets
+- **Monitor** — events, evidence, usage, and compliance
+- **Own** — context, memory, sessions, and portability
 
 ## Read next
 
-[Oktopus](oktopus.md) — your global control plane for AI.
+- [Oktopus](oktopus.md) — the product manifesto and control-plane argument
+- [Concepts](concepts.md) — the design model
+- [Extending](extending.md) — capability sources and governance
+- [Specifications](specs.md) — normative requirements
+- [Roadmap](roadmap.md) — implementation sequence
