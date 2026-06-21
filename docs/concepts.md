@@ -83,9 +83,9 @@ Interactive and long-running work runs in a **workspace** — a persistent, warm
 
 → Specs: `define-enterprise-admin-marketplace-sessions`, `define-image-and-snapshot-store`
 
-## Memory
+## Context
 
-Memory is scoped — user, team, and org — and owned by the control plane, not the agent. It persists across runs and is reused by whichever runtime executes next, so context carries over when you change agents.
+**Context** is the high-level name for the durable layer the control plane owns so work carries across runs and runtimes — switch the model, keep the context. Within it, **memory** is a distinct, longer-lived piece: scoped knowledge (user, team, org) that *accumulates* across runs and is reused by whichever runtime executes next. Context also covers a run or thread's live working set — artifacts, decisions, approvals, references — so a task can pause, resume, or move. Both are owned by the control plane, not the agent.
 
 → Spec: `define-enterprise-admin-marketplace-sessions`
 
