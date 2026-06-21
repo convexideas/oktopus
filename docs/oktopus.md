@@ -1,6 +1,6 @@
 # Oktopus
 
-Oktopus is a vendor-agnostic control plane for agent orchestration, governance, and context — how you [own the harness](index.md) in practice.
+Oktopus is how you [own the harness](index.md) in practice.
 
 The *model* is replaceable; the harness is yours — standardized where the organization needs repeatability, personalized where people need room to explore.
 
@@ -44,6 +44,7 @@ From there, five pillars — compose the work, connect your channels, manage exe
 ### Monitor
 
 - **Auditability** — every state transition is an append-only event and outputs are captured as evidence, so usage, cost, and compliance stay visible on the record. *Enforced by [define-core-run-job-event-model](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-core-run-job-event-model), [define-artifacts-verifiers-policy](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-artifacts-verifiers-policy).*
+- **Telemetry** — runs, workers, tools, models, approvals, costs, latency, failures, and recovery signals produce operational telemetry, so the platform can support SLOs, AIOps, remediation, and capacity planning instead of only after-the-fact audit. *Enforced by [define-client-server-runtime-config-sources](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-client-server-runtime-config-sources), [define-enterprise-admin-marketplace-sessions](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-enterprise-admin-marketplace-sessions).*
 
 ### Own
 
