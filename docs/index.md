@@ -1,8 +1,6 @@
 # The best harness is the one you own
 
-Models come and go — harnesses endure.
-
-Oktopus is a vendor-agnostic control plane for agent orchestration, governance, and context. The project path is deliberate: **principles → design → specs → roadmap → code**.
+Oktopus is a vendor-agnostic control plane for agent orchestration, governance, and context.
 
 ## Pillars
 
@@ -14,7 +12,7 @@ Oktopus is a vendor-agnostic control plane for agent orchestration, governance, 
 
 ## Read next
 
-- [Oktopus](oktopus.md) — the product manifesto and control-plane argument
+- [Overview](oktopus.md) — the product manifesto and control-plane argument
 - [Concepts](concepts.md) — the design model
 - [Extending](extending.md) — capability sources and governance
 - [Specifications](specs.md) — normative requirements
