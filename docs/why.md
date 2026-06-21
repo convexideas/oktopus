@@ -56,7 +56,7 @@ Agents are easy to adopt and hard to govern. Here are the problems organizations
 
 **Today.** Each tool owns its own threads; there's no portable layer.
 
-**With a control plane.** Runs, artifacts, evidence, and scoped memory (user, team, org) live in the control plane. Context transfers across agents — the agent is the interchangeable part.
+**With a control plane.** Runs, artifacts, evidence, and scoped memory (user, team, org) live in the control plane, so context isn't tied to any one model — switch the model and keep the context.
 
 ## The boundary
 
