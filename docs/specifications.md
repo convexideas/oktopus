@@ -30,4 +30,4 @@ Each change contains:
 - `specs/oktopus-platform/spec.md` — the requirement deltas (WHEN/THEN scenarios)
 - `tasks.md` — the implementation backlog (these are the **tickets**)
 
-So the chain is: **principle → concept → spec requirement → task → code.** The `tasks.md` files are the ticket layer that the [Roadmap](roadmap.md) sequences.
+So the chain is: **pillar → concept → spec requirement → task → code.** The `tasks.md` files are the ticket layer that the [Roadmap](roadmap.md) sequences.

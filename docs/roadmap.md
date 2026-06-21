@@ -1,6 +1,6 @@
 # Roadmap
 
-The implementation plan, sequenced by the principles: build the **source-of-truth spine** first, then **evidence**, then **governance**, then **sessions and extensibility**. This reconciles with the phasing in `define-oktopus-platform-roadmap` — that change owns the canonical phasing; this page is its readable view.
+The implementation plan, sequenced spine-first: the **source-of-truth spine**, then **evidence**, then **governance**, then **sessions and extensibility**. This reconciles with the phasing in `define-oktopus-platform-roadmap` — that change owns the canonical phasing; this page is its readable view.
 
 ## Status at a glance
 

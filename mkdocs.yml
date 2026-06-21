@@ -33,7 +33,7 @@ theme:
     - toc.follow
 
 nav:
-  - Why a control plane: why.md
+  - Oktopus: oktopus.md
   - Concepts: concepts.md
   - Extending the Harness: extending.md
   - Specifications: specifications.md
