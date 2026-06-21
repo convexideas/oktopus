@@ -33,7 +33,6 @@ theme:
     - toc.follow
 
 nav:
-  - Manifesto: index.md
   - Why a control plane: why.md
   - Concepts: concepts.md
   - Extending the Harness: extending.md
