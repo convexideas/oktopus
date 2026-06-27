@@ -21,7 +21,7 @@ This page names the moving parts in Oktopus so registry, configuration, sandbox,
 | **Registry** | Stores capability manifests: workflows, runtimes, tools, verifiers, profiles, adapters, skillpacks, policies. Can be local files or server-backed. |
 | **Resolver** | Turns references like `workflow:hello-local`, `runtime:pi`, or `verifier:artifact-exists` into concrete, approved manifests. |
 | **Installer / provisioner** | Materializes registry resources into an environment using an install profile. |
-| **Session manager** | Creates coding sessions, records timeline events, and tracks sandbox/session state. |
+| **Session manager** | Creates coding sessions, records timeline events, tracks share state, and links sessions to user-bound sandbox instances. |
 | **Policy engine** | Answers whether a subject/job/tool/resource/action is allowed. |
 | **Store** | Durable relational state boundary. SQLite local now; Postgres later. |
 | **Artifact store** | Stores session output bytes. Filesystem local now; object storage later. |
@@ -32,14 +32,15 @@ This page names the moving parts in Oktopus so registry, configuration, sandbox,
 | Actor | Role |
 |---|---|
 | **OpenShell provider** | Oktopus wrapper around OpenShell sandbox create/connect/exec/log operations. |
-| **Sandbox / workspace** | Isolated filesystem/process boundary where the agent runs. First target: OpenShell. |
+| **Workspace definition** | Immutable org/platform-scoped template for source, environment, and global resource references. |
+| **Sandbox instance** | User-bound private runtime created from workspace + profile + session context. May contain user identity and secrets. |
 | **OpenShell supervisor** | Sandbox-local process that launches and restricts the agent, applies policy, routes egress, and relays logs/connect traffic. |
 | **Agent runtime** | The actual agent process inside the sandbox. For MVP it is just another managed process with prepared filesystem context. |
 | **Tools / MCP servers** | Future callable capabilities made available to agents by policy. MCP is not the primary workspace manager. |
 
 ## Configuration artifacts
 
-Registry items describe **what exists**. Profiles describe **how to materialize it**.
+Registry items describe **what exists**. Profiles describe **how to materialize it**. Workspaces are immutable shared definitions; sandboxes are private running instances.
 
 | Artifact | Lives in | Purpose |
 |---|---|---|
@@ -137,15 +138,16 @@ stage:                   → /oktopus/stage
 
 ```text
 1. CLI/API resolves profile and local config.
-2. Workspace is selected or created from a local path.
-3. Coding session is created in the store.
-4. Oktopus materializes the workspace for sandbox startup.
-5. OpenShell provider creates or selects a sandbox from the workspace and selected profile.
-6. OpenShell supervisor launches the agent as a restricted process.
-7. Developer attaches to the session terminal/logs.
-8. Agent reads generated context and workspace files.
-9. Agent writes outputs to session artifact paths.
-10. Oktopus records session events and artifact metadata for later retrieval.
+2. Immutable workspace definition is selected or created from a local path/source ref.
+3. User-bound sandbox instance is created or selected for that workspace/profile/session.
+4. Coding session is created in the store and may be shared by policy.
+5. Oktopus materializes the workspace for sandbox startup.
+6. OpenShell provider creates or selects a private sandbox instance.
+7. OpenShell supervisor launches the agent as a restricted process.
+8. Developer attaches to the session terminal/logs.
+9. Agent reads generated context and workspace files.
+10. Agent writes outputs to session artifact paths.
+11. Oktopus records session events and artifact metadata for later retrieval.
 ```
 
 General workflow/run/job execution is deferred until this coding-session loop works.
@@ -165,7 +167,9 @@ General workflow/run/job execution is deferred until this coding-session loop wo
 
 1. Registry manifests define capabilities, not execution state.
 2. Install profiles map logical resources to sandbox paths.
-3. Sandboxes enforce access; prompts only guide behavior.
-4. OpenShell manages sandbox enforcement; Oktopus manages session durability and hub-facing state.
-5. Agents may propose memory or capabilities; Oktopus approves and stores them.
-6. Server mode never trusts random local registry files unless explicitly running a local validation command.
+3. Workspaces are immutable; fork to change configuration.
+4. Sandboxes enforce access; prompts only guide behavior.
+5. Sharing a session does not share the creator's sandbox credentials; another user resumes in their own sandbox.
+6. OpenShell manages sandbox enforcement; Oktopus manages session durability and hub-facing state.
+7. Agents may propose memory or capabilities; Oktopus approves and stores them.
+8. Server mode never trusts random local registry files unless explicitly running a local validation command.

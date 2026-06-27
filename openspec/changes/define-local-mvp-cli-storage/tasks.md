@@ -8,7 +8,7 @@
 - [x] Define storage boundary and migration approach.
 - [x] Define registry loading and validation behavior.
 - [x] Reduce MVP scope to coding sessions only.
-- [x] Define Profile → Workspace → Session model.
+- [x] Define Profile → Workspace → Sandbox → Session model.
 - [x] Define workspace materialization for sandbox startup.
 - [x] Define OpenShell as the first local sandbox provider.
 - [x] Define that secrets stay out of materialized workspace files/staging.
@@ -27,8 +27,9 @@
 - [x] Add registry loader for seed manifests.
 - [x] Quarantine non-MVP registry artifacts.
 - [x] Add `profiles`, `workspaces`, `sessions`, `session_events`, and `session_artifacts` migration.
-- [ ] Add `profile init local` command.
-- [ ] Add `workspace create/list/show` commands.
+- [x] Add `profile init local` command.
+- [x] Add immutable workspace fields and `sandbox_instances` migration.
+- [ ] Add `workspace create/list/show/fork` commands.
 - [ ] Add `session start/list/show/log` commands.
 - [ ] Add workspace materialization for OpenShell startup.
 - [ ] Add generated session `AGENTS.md`.

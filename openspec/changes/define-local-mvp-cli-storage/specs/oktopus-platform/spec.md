@@ -15,20 +15,40 @@ Oktopus SHALL first provide a local coding-session manager, not a general workfl
 - **WHEN** a developer lists or shows sessions
 - **THEN** Oktopus displays the session, workspace, status, timeline, and artifact references from durable state
 
-### Requirement: Profiles and Workspaces
+### Requirement: Profiles, Workspaces, Sandboxes, and Sessions
 
-Oktopus SHALL model local execution through profiles and workspaces.
+Oktopus SHALL separate profile defaults, immutable workspace definitions, user-bound sandbox instances, and shareable sessions.
 
 #### Scenario: Initialize local profile
 
 - **WHEN** a developer runs `oktopus profile init local`
 - **THEN** Oktopus creates or records a local profile with registry path, database URL, runs/artifacts directory, and sandbox defaults
 
-#### Scenario: Create workspace from local path
+#### Scenario: Create immutable workspace from local path
 
 - **WHEN** a developer runs `oktopus workspace create <name> --path <path>`
-- **THEN** Oktopus records a workspace pointing at the local coding directory
+- **THEN** Oktopus records an immutable workspace definition pointing at the local coding directory or source reference
+- **AND** the workspace stores shared/global references only, not user secrets
 - **AND** later sandbox startup can copy, mount, or upload that workspace into an isolated runtime
+
+#### Scenario: Fork workspace to change configuration
+
+- **WHEN** a workspace configuration needs to change after creation
+- **THEN** Oktopus creates a new workspace version or fork
+- **AND** existing sessions and sandboxes remain tied to the original workspace definition
+
+#### Scenario: Create user-bound sandbox instance
+
+- **WHEN** a user starts or resumes a session that needs execution
+- **THEN** Oktopus creates or selects a sandbox instance for that user, workspace, profile, and session
+- **AND** user credentials, login state, and secret access remain scoped to that sandbox instance
+
+#### Scenario: Share session without sharing sandbox secrets
+
+- **WHEN** a user shares a session with another user
+- **THEN** the recipient can view allowed session events, artifacts, and memory
+- **AND** the recipient does not inherit the creator's sandbox identity or secrets
+- **AND** resuming execution creates or uses the recipient's own sandbox instance
 
 ### Requirement: Workspace Materialization
 

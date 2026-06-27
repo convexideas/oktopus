@@ -21,8 +21,8 @@ func TestMigrateAppliesAllAndIsIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("first migrate: %v", err)
 	}
-	if len(applied) < 4 {
-		t.Fatalf("expected at least 4 migrations applied, got %d: %v", len(applied), applied)
+	if len(applied) < 5 {
+		t.Fatalf("expected at least 5 migrations applied, got %d: %v", len(applied), applied)
 	}
 
 	// Second run must apply nothing (idempotent).
@@ -118,6 +118,40 @@ func TestMigration0004Schema(t *testing.T) {
 	}
 	if !hasColumn(t, conn, "session_artifacts", "sha256") {
 		t.Fatal("session_artifacts.sha256 column missing")
+	}
+}
+
+func TestMigration0005Schema(t *testing.T) {
+	ctx := context.Background()
+	dbPath := filepath.Join(t.TempDir(), "oktopus.db")
+	conn, err := Open(dbPath)
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer conn.Close()
+	if _, err := Migrate(ctx, conn); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+
+	var name string
+	if err := conn.QueryRowContext(ctx,
+		`SELECT name FROM sqlite_master WHERE type='table' AND name='sandbox_instances'`).Scan(&name); err != nil {
+		t.Fatalf("sandbox_instances table missing: %v", err)
+	}
+	for _, col := range []string{"scope", "default_sandbox_provider", "default_agent_ref"} {
+		if !hasColumn(t, conn, "profiles", col) {
+			t.Fatalf("profiles.%s column missing", col)
+		}
+	}
+	for _, col := range []string{"scope", "version", "definition_hash", "source_type", "source_uri", "source_ref", "created_by"} {
+		if !hasColumn(t, conn, "workspaces", col) {
+			t.Fatalf("workspaces.%s column missing", col)
+		}
+	}
+	for _, col := range []string{"owner_subject", "provider", "provider_sandbox_id", "credential_scope"} {
+		if !hasColumn(t, conn, "sandbox_instances", col) {
+			t.Fatalf("sandbox_instances.%s column missing", col)
+		}
 	}
 }
 

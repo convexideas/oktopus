@@ -8,7 +8,7 @@ Oktopus is a framework for building enterprise agent systems — an operating la
 
 The application must stay useful in three modes:
 
-1. **Local MVP** — coding sessions only: profile, workspace, sandbox, session, local store, local artifacts.
+1. **Local MVP** — coding sessions only: profile, immutable workspace definition, user-bound sandbox instance, shareable session, local store, local artifacts.
 2. **Team server** — API server, background workers, shared DB, object store, configured sources.
 3. **Enterprise platform** — marketplace, governance, identity, policies, workspaces, distributed workers.
 
@@ -19,7 +19,8 @@ See [Actors and Interactions](actors-and-interactions.md) for the detailed actor
 ```text
 CLI / API
   → profile resolution
-  → workspace resolution
+  → immutable workspace resolution
+  → user-bound sandbox instance
   → session creation
   → workspace materialization
   → OpenShell sandbox provider
@@ -46,12 +47,15 @@ openspec/                 normative requirements and tasks
 ## Design invariants
 
 1. **Registry is source of truth for capabilities.** Runtime code must not hard-code the available tools, skills, personas, or workflows.
-2. **Profiles choose defaults and limits.** Workspaces define where coding happens; sessions define task continuity.
-3. **Workspaces are materialized into sandboxes.** Materialization prepares context, generated instructions, memory summaries, runtime launch metadata, event paths, and artifact paths.
-4. **Secrets do not enter workspace files or staging.** Prepared files contain references and policy intent; sandbox/provider layers inject credentials.
-5. **State transitions emit events.** Durable state without an event is design drift.
-6. **Policy is code-enforced.** Prompts can guide, but enforcement happens in controller/provider/sandbox.
-7. **Local-first, distributed-ready.** SQLite/filesystem implementations must sit behind store/artifact/provider boundaries that can later swap to Postgres/object store/remote workers.
+2. **Profiles choose defaults and limits.** Profiles may be user/org scoped and define defaults, provider choices, and policy limits.
+3. **Workspaces are immutable shared definitions.** Workspaces are org/platform scoped templates for source, environment, and global resource refs. Change by forking, not mutating.
+4. **Sandboxes are user-bound private instances.** Sandboxes are created from workspace + profile + session context and may contain user identity/secrets; sharing a session does not share the sandbox.
+5. **Sessions are task capsules.** Sessions bind a user/task to a workspace and may be shared by policy; another user resumes into their own sandbox.
+6. **Workspaces are materialized into sandboxes.** Materialization prepares context, generated instructions, memory summaries, runtime launch metadata, event paths, and artifact paths.
+7. **Secrets do not enter workspace files or staging.** Prepared files contain references and policy intent; sandbox/provider layers inject credentials.
+8. **State transitions emit events.** Durable state without an event is design drift.
+9. **Policy is code-enforced.** Prompts can guide, but enforcement happens in controller/provider/sandbox.
+10. **Local-first, distributed-ready.** SQLite/filesystem implementations must sit behind store/artifact/provider boundaries that can later swap to Postgres/object store/remote workers.
 
 ## Graphify and SCIP usage
 
@@ -127,13 +131,13 @@ Oktopus profile/workspace/session
   → agent process inside sandbox
 ```
 
-Oktopus owns sessions, memory, artifacts, profile/workspace metadata, and future hub sync. OpenShell owns sandbox lifecycle, supervisor enforcement, filesystem/network policy, credential injection, and terminal/connect plumbing.
+Oktopus owns immutable workspace definitions, sessions, memory, artifacts, profile metadata, sandbox references, and future hub sync. OpenShell owns sandbox lifecycle, supervisor enforcement, filesystem/network policy, credential injection, and terminal/connect plumbing.
 
 ## Near-term build order
 
 1. Keep registry + store foundation green.
-2. Add profile/workspace/session tables.
-3. Add `profile init`, `workspace create`, and `session start/list/show/log`.
+2. Add immutable workspace fields and a sandbox instance table.
+3. Add `profile init`, `workspace create/fork`, and `session start/list/show/log`.
 4. Add workspace materialization for sandbox startup.
 5. Add generated session `AGENTS.md` and artifact directory.
 6. Add OpenShell provider wrapper for sandbox create/connect/logs.
