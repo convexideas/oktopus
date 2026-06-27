@@ -1,44 +1,76 @@
 ## ADDED Requirements
 
-### Requirement: Local-First MVP CLI
+### Requirement: Local Coding Session MVP
 
-Oktopus SHALL provide a local-first CLI that initializes state, validates registry manifests, creates workflow runs, inspects runs/jobs/events/artifacts, and runs local workers.
+Oktopus SHALL first provide a local coding-session manager, not a general workflow engine.
+
+#### Scenario: Start a local coding session
+
+- **WHEN** a developer runs `oktopus session start <title> --workspace <workspace>`
+- **THEN** Oktopus creates a durable session bound to that workspace
+- **AND** records the session title, workspace reference, status, timestamps, and local profile context
+
+#### Scenario: Inspect local coding sessions
+
+- **WHEN** a developer lists or shows sessions
+- **THEN** Oktopus displays the session, workspace, status, timeline, and artifact references from durable state
+
+### Requirement: Profiles and Workspaces
+
+Oktopus SHALL model local execution through profiles and workspaces.
+
+#### Scenario: Initialize local profile
+
+- **WHEN** a developer runs `oktopus profile init local`
+- **THEN** Oktopus creates or records a local profile with registry path, database URL, runs/artifacts directory, and sandbox defaults
+
+#### Scenario: Create workspace from local path
+
+- **WHEN** a developer runs `oktopus workspace create <name> --path <path>`
+- **THEN** Oktopus records a workspace pointing at the local coding directory
+- **AND** later sandbox startup can copy, mount, or upload that workspace into an isolated runtime
+
+### Requirement: Workspace Materialization
+
+Oktopus SHALL materialize a workspace into a sandbox using the selected profile. Materialization is an implementation step, not a first-class user object.
+
+#### Scenario: Prepare workspace for sandbox
+
+- **WHEN** a developer starts or attaches a coding session that needs a sandbox
+- **THEN** Oktopus prepares workspace files, profile metadata, session metadata, generated agent instructions, memory summary, runtime launch metadata, event log path, and artifact directory for the sandbox provider
+- **AND** the prepared layout can be copied, mounted, uploaded, or image-backed depending on provider support
+
+#### Scenario: Keep secrets out of materialized workspace
+
+- **WHEN** Oktopus prepares workspace context for a sandbox
+- **THEN** it stores secret references and policy intent only
+- **AND** raw API keys, login tokens, and provider credentials are not written into workspace files or staging directories
+
+### Requirement: OpenShell as Local Sandbox Provider
+
+Oktopus SHALL treat OpenShell as the first local sandbox provider for interactive agent sessions.
+
+#### Scenario: Run session in sandbox
+
+- **WHEN** a session is run through the OpenShell provider
+- **THEN** Oktopus creates or selects an OpenShell sandbox from the workspace and selected profile
+- **AND** records the OpenShell sandbox identifier on the session or workspace
+
+#### Scenario: Attach to session
+
+- **WHEN** a developer runs `oktopus session attach <session>`
+- **THEN** Oktopus attaches to the managed agent process or sandbox terminal using the provider's connect/exec/TTY mechanism
+- **AND** user input and agent output can be mirrored into session events or logs
+
+### Requirement: Local State Store
+
+Oktopus SHALL use the storage boundary for local durable state.
 
 #### Scenario: Initialize local database
 
 - **WHEN** a developer runs `oktopus db init`
-- **THEN** Oktopus creates the configured SQLite database if missing
+- **THEN** Oktopus creates the configured local state store if missing
 - **AND** applies all pending migrations exactly once
-
-#### Scenario: Validate local registry
-
-- **WHEN** a developer runs `oktopus registry validate`
-- **THEN** Oktopus loads local capability manifests
-- **AND** reports schema, uniqueness, and reference validation errors with file and field context
-
-#### Scenario: Create local workflow run
-
-- **WHEN** a developer runs `oktopus runs create <workflow> --title <title>`
-- **THEN** Oktopus resolves the workflow capability
-- **AND** creates a durable run, expands workflow steps into jobs, emits events, and creates run artifact directories
-
-### Requirement: Go Core Implementation
-
-Oktopus SHALL implement the local MVP core in Go.
-
-#### Scenario: Build single local binary
-
-- **WHEN** Oktopus is built for local MVP
-- **THEN** it produces a single `oktopus` CLI binary containing registry, DB, run, scheduler, worker, artifact, event, verifier, and policy MVP logic
-
-### Requirement: SQLite Local State Store
-
-Oktopus SHALL use SQLite as the local MVP relational state store.
-
-#### Scenario: Store core execution state
-
-- **WHEN** Oktopus creates or updates projects, capabilities, runs, jobs, attempts, leases, workers, steps, artifacts, events, verifier results, policy decisions, or approvals
-- **THEN** it persists the current state in SQLite
 
 #### Scenario: Apply migrations safely
 
@@ -46,84 +78,36 @@ Oktopus SHALL use SQLite as the local MVP relational state store.
 - **THEN** Oktopus applies each migration once
 - **AND** records applied migration versions in `schema_migrations`
 
-### Requirement: Filesystem Artifact Store
+### Requirement: Local Session Events and Artifacts
 
-Oktopus SHALL store local MVP artifact bytes on the filesystem and artifact metadata in SQLite.
+Oktopus SHALL persist session timeline events and artifact metadata outside any agent runtime.
 
-#### Scenario: Finalize local artifact
+#### Scenario: Record session event
 
-- **WHEN** a worker or verifier writes an artifact
-- **THEN** Oktopus stores the bytes under a run/job/attempt-scoped path
-- **AND** records URI, size, digest, type, producer, provenance, and finalization timestamp in SQLite
+- **WHEN** a session is created, prepared, attached, run, paused, resumed, or closed
+- **THEN** Oktopus records an append-only session event with timestamp, type, actor, and payload metadata
 
-### Requirement: Workflow Expansion into Jobs
+#### Scenario: Record session artifact
 
-Oktopus SHALL expand workflow manifests into durable job records during run creation.
+- **WHEN** an agent or developer adds an artifact to a session
+- **THEN** Oktopus records artifact metadata including URI, type, size, digest, producer, and creation time
 
-#### Scenario: Expand workflow steps
+### Requirement: Installed CLI is on PATH
 
-- **WHEN** a workflow contains ordered or dependency-linked steps
-- **THEN** Oktopus creates one job per executable step
-- **AND** records job key, name, kind, runtime or capability references, dependency list, output contract, policy, environment, and initial status
+Oktopus SHALL be invokable as `oktopus` after supported installation.
 
-#### Scenario: Queue dependency-free jobs
+#### Scenario: Installed CLI is on PATH
 
-- **WHEN** jobs have no unsatisfied dependencies
-- **THEN** Oktopus marks them `queued`
-- **AND** leaves dependent jobs in `waiting_deps` until upstream dependency policy is satisfied
+- **WHEN** a developer installs Oktopus through a supported installer or package manager
+- **THEN** the installer makes the `oktopus` command available on `PATH`
+- **AND** the developer does not need to invoke the binary by full filesystem path
 
-### Requirement: Transactional State Transitions with Events
+### Requirement: Deferred Workflow Engine
 
-Oktopus SHALL update current state and emit corresponding events through explicit transition helpers.
+Oktopus SHALL defer general workflow/run/job execution until the coding-session MVP is working.
 
-#### Scenario: Transition job state
+#### Scenario: Keep run/job schema as future foundation
 
-- **WHEN** Oktopus queues, leases, starts, completes, fails, expires, cancels, or skips a job
-- **THEN** the state update and event emission happen together in the same logical operation
-
-#### Scenario: Prevent silent mutation
-
-- **WHEN** core state changes outside a transition helper
-- **THEN** tests or validation should detect missing event emission for the changed state path
-
-### Requirement: Local Worker Uses Lease Protocol
-
-Oktopus SHALL provide a local worker command that uses the same registration, request, accept, lease, heartbeat, artifact, event, and completion model intended for distributed workers.
-
-#### Scenario: Run local worker once
-
-- **WHEN** a developer runs `oktopus worker local --kind shell --once`
-- **THEN** the worker registers, requests an eligible job, accepts a lease, creates an attempt, heartbeats during execution, writes logs/artifacts, completes or fails the attempt, releases the lease, and advances downstream jobs where applicable
-
-#### Scenario: Stub unsupported local job kind
-
-- **WHEN** the local MVP encounters an agent, review, or synthesis job without a real adapter and stub mode is enabled
-- **THEN** it writes a placeholder report artifact and completes the job using normal lease, artifact, and event flow
-
-### Requirement: Seed Capabilities and Starter Workflows
-
-Oktopus SHALL ship a minimal local registry sufficient to validate the execution spine.
-
-#### Scenario: Validate seed capabilities
-
-- **WHEN** a developer validates the initial registry
-- **THEN** Oktopus recognizes seed capabilities for shell runtime, Pi runtime stub, Graphify tool stub, OpenSpec tool stub, artifact-exists verifier, command-exit-zero verifier, and starter workflows
-
-#### Scenario: Run hello workflow
-
-- **WHEN** a developer creates and executes the `hello-local` workflow
-- **THEN** Oktopus completes at least one local shell job, emits events, writes logs, and finalizes at least one artifact with digest
-
-#### Scenario: Model guarded workflow
-
-- **WHEN** a developer creates the `guarded-build` workflow
-- **THEN** Oktopus creates build, adversarial review, synthesis, and verifier jobs with correct dependency shape
-
-### Requirement: Local MVP Acceptance Tests
-
-Oktopus SHALL include smoke tests that prove the local execution spine works without external services.
-
-#### Scenario: Run local smoke test
-
-- **WHEN** the smoke test runs from a clean temporary workspace
-- **THEN** it initializes SQLite, validates registry, creates a workflow run, leases and completes a local worker job, emits events, finalizes an artifact, and lists run/job/event/artifact state successfully
+- **WHEN** existing run/job/worker tables or specs are present
+- **THEN** they MAY remain as future foundation
+- **BUT** the local MVP user flow is profiles, workspaces, sessions, sandbox attach, events, and artifacts

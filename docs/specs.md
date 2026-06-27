@@ -20,6 +20,7 @@ Changes add requirements to the single `oktopus-platform` spec and are listed in
 | 8 | [define-client-server-runtime-config-sources](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-client-server-runtime-config-sources) | Client/server control plane and configurable sources |
 | 9 | [define-image-and-snapshot-store](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-image-and-snapshot-store) | Image / snapshot storage backend |
 | 10 | [define-enterprise-admin-marketplace-sessions](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-enterprise-admin-marketplace-sessions) | Enterprise catalog, marketplace, interactive workspaces, sessions |
+| 11 | [define-runtime-adapters-skill-index-install-profiles](https://github.com/convexideas/oktopus/blob/main/openspec/changes/define-runtime-adapters-skill-index-install-profiles) | Runtime adapter contract, skill index, delegation rules, install pipeline, package profiles |
 
 ## How specs map down to work
 

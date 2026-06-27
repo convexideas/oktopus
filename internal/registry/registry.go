@@ -16,17 +16,28 @@ import (
 )
 
 var validKinds = map[string]bool{
-	"tool":          true,
-	"skill":         true,
-	"skillpack":     true,
-	"persona":       true,
-	"workflow":      true,
-	"verifier":      true,
-	"environment":   true,
-	"policy":        true,
-	"runtime":       true,
-	"adapter":       true,
-	"solution_pack": true,
+	"adapter":            true,
+	"agent_profile":      true,
+	"command":            true,
+	"data_source":        true,
+	"environment":        true,
+	"input_channel":      true,
+	"knowledge_source":   true,
+	"mcp_server":         true,
+	"model_provider":     true,
+	"output_destination": true,
+	"persona":            true,
+	"policy":             true,
+	"profile":            true,
+	"runtime":            true,
+	"skill":              true,
+	"skillpack":          true,
+	"solution_pack":      true,
+	"task_standard":      true,
+	"tool":               true,
+	"verifier":           true,
+	"workflow":           true,
+	"workflow_blueprint": true,
 }
 
 type Capability struct {
@@ -177,10 +188,10 @@ func (c Capability) JSON() ([]byte, error) {
 	return json.MarshalIndent(c.Raw, "", "  ")
 }
 
-// SyncCapabilities upserts every loaded capability into the SQLite `capabilities`
-// index table. It is the write-side of the "file + SQLite index" registry model:
-// manifests remain the source of truth on disk, and this table is a queryable
-// mirror keyed by (kind, name, version). Returns the number of rows written.
+// SyncCapabilities upserts every loaded capability into the relational
+// `capabilities` index table. Manifests remain the source of truth on disk, and
+// this table is a queryable mirror keyed by (kind, name, version). Returns the
+// number of rows written.
 func SyncCapabilities(ctx context.Context, db *sql.DB, reg *Registry) (int, error) {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {

@@ -1,5 +1,5 @@
 site_name: Oktopus
-site_description: A vendor-agnostic control plane for agent orchestration and governance.
+site_description: A framework and operating layer for governed agentic work.
 site_url: https://convexideas.github.io/oktopus/
 repo_url: https://github.com/convexideas/oktopus
 repo_name: convexideas/oktopus
@@ -33,7 +33,10 @@ theme:
     - toc.follow
 
 nav:
-  - Overview: oktopus.md
+  - Overview: index.md
+  - Architecture: architecture.md
+  - Application Design: application-design.md
+  - Actors and Interactions: actors-and-interactions.md
   - Concepts: concepts.md
   - Extending: extending.md
   - Specifications: specs.md

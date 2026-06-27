@@ -1,6 +1,6 @@
 # Oktopus
 
-Single-machine first, distributed-ready: a vendor-agnostic control plane for agent orchestration, governance, and context. Agent runtimes plug in as interchangeable workers.
+A framework for building enterprise agent systems — an operating layer and control plane for composing, governing, monitoring, and resuming agentic work across runtimes.
 
 Project path: **principles → design → specs → roadmap → code**. Start with [docs/index.md](docs/index.md).
 

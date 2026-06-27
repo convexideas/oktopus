@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/convexideas/oktopus/internal/db"
+	"github.com/convexideas/oktopus/internal/store"
 	"github.com/spf13/cobra"
 )
 
@@ -24,23 +24,23 @@ func newDBCommand(opts *Options) *cobra.Command {
 func newDBInitCommand(opts *Options) *cobra.Command {
 	return &cobra.Command{
 		Use:   "init",
-		Short: "Create the SQLite database and apply all migrations",
+		Short: "Create the state store and apply all migrations",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			conn, err := db.Open(opts.DBPath)
+			st, err := store.Open(context.Background(), opts.DatabaseURL)
 			if err != nil {
 				return err
 			}
-			defer conn.Close()
+			defer st.Close()
 
-			applied, err := db.Migrate(context.Background(), conn)
+			applied, err := st.Migrate(context.Background())
 			if err != nil {
 				return err
 			}
 			if len(applied) == 0 {
-				fmt.Fprintf(cmd.OutOrStdout(), "ok: database already initialized and up to date: %s\n", opts.DBPath)
+				fmt.Fprintf(cmd.OutOrStdout(), "ok: database already initialized and up to date: %s\n", st.Location())
 				return nil
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "ok: initialized %s and applied %d migration(s)\n", opts.DBPath, len(applied))
+			fmt.Fprintf(cmd.OutOrStdout(), "ok: initialized %s and applied %d migration(s)\n", st.Location(), len(applied))
 			for _, migration := range applied {
 				fmt.Fprintf(cmd.OutOrStdout(), "- %s\n", migration)
 			}
@@ -56,27 +56,29 @@ func newDBMigrateCommand(opts *Options) *cobra.Command {
 		Use:   "migrate",
 		Short: "Apply pending migrations to an existing database",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if _, err := os.Stat(opts.DBPath); os.IsNotExist(err) {
-				return fmt.Errorf("database not found at %s: run 'oktopus db init' first", opts.DBPath)
-			} else if err != nil {
-				return fmt.Errorf("stat database %s: %w", opts.DBPath, err)
+			if path, ok := store.LocalPath(opts.DatabaseURL); ok {
+				if _, err := os.Stat(path); os.IsNotExist(err) {
+					return fmt.Errorf("database not found at %s: run 'oktopus db init' first", path)
+				} else if err != nil {
+					return fmt.Errorf("stat database %s: %w", path, err)
+				}
 			}
 
-			conn, err := db.Open(opts.DBPath)
+			st, err := store.Open(context.Background(), opts.DatabaseURL)
 			if err != nil {
 				return err
 			}
-			defer conn.Close()
+			defer st.Close()
 
-			applied, err := db.Migrate(context.Background(), conn)
+			applied, err := st.Migrate(context.Background())
 			if err != nil {
 				return err
 			}
 			if len(applied) == 0 {
-				fmt.Fprintf(cmd.OutOrStdout(), "ok: database up to date: %s\n", opts.DBPath)
+				fmt.Fprintf(cmd.OutOrStdout(), "ok: database up to date: %s\n", st.Location())
 				return nil
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "ok: applied %d migration(s) to %s\n", len(applied), opts.DBPath)
+			fmt.Fprintf(cmd.OutOrStdout(), "ok: applied %d migration(s) to %s\n", len(applied), st.Location())
 			for _, migration := range applied {
 				fmt.Fprintf(cmd.OutOrStdout(), "- %s\n", migration)
 			}

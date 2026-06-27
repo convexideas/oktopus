@@ -111,6 +111,16 @@ Oktopus SHALL record human approvals and policy decisions as durable, auditable 
 - **THEN** Oktopus records a policy decision
 - **AND** either denies the action or creates an approval request before execution proceeds
 
+### Requirement: Storage Adapter Boundary
+
+Oktopus SHALL keep core execution logic behind storage adapter or repository boundaries so local and distributed deployments can share the same run/job/event semantics.
+
+#### Scenario: Avoid SQLite coupling in core logic
+
+- **WHEN** Oktopus implements run creation, scheduling, worker leasing, state transitions, artifact metadata, approvals, or policy decisions
+- **THEN** that logic uses store/repository interfaces instead of directly constructing SQLite connections
+- **AND** SQLite-specific locking, pragmas, and SQL dialect choices remain isolated to the local storage adapter or migration layer
+
 ### Requirement: Local-First Persistence with Distributed Upgrade Path
 
 Oktopus SHALL support local-first persistence while preserving a path to distributed storage adapters.

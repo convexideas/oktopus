@@ -21,8 +21,8 @@ func TestMigrateAppliesAllAndIsIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("first migrate: %v", err)
 	}
-	if len(applied) < 2 {
-		t.Fatalf("expected at least 2 migrations applied, got %d: %v", len(applied), applied)
+	if len(applied) < 4 {
+		t.Fatalf("expected at least 4 migrations applied, got %d: %v", len(applied), applied)
 	}
 
 	// Second run must apply nothing (idempotent).
@@ -61,6 +61,63 @@ func TestMigration0002Schema(t *testing.T) {
 	// approvals.attempt_id column exists.
 	if !hasColumn(t, conn, "approvals", "attempt_id") {
 		t.Fatal("approvals.attempt_id column missing")
+	}
+}
+
+func TestMigration0003Schema(t *testing.T) {
+	ctx := context.Background()
+	dbPath := filepath.Join(t.TempDir(), "oktopus.db")
+	conn, err := Open(dbPath)
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer conn.Close()
+	if _, err := Migrate(ctx, conn); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+
+	for _, table := range []string{"skill_sources", "skill_index", "runtime_capabilities"} {
+		var name string
+		if err := conn.QueryRowContext(ctx,
+			`SELECT name FROM sqlite_master WHERE type='table' AND name=?`, table).Scan(&name); err != nil {
+			t.Fatalf("%s table missing: %v", table, err)
+		}
+	}
+	if !hasColumn(t, conn, "skill_index", "path") {
+		t.Fatal("skill_index.path column missing")
+	}
+	if !hasColumn(t, conn, "runtime_capabilities", "interactive_mode") {
+		t.Fatal("runtime_capabilities.interactive_mode column missing")
+	}
+}
+
+func TestMigration0004Schema(t *testing.T) {
+	ctx := context.Background()
+	dbPath := filepath.Join(t.TempDir(), "oktopus.db")
+	conn, err := Open(dbPath)
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer conn.Close()
+	if _, err := Migrate(ctx, conn); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+
+	for _, table := range []string{"profiles", "workspaces", "sessions", "session_events", "session_artifacts"} {
+		var name string
+		if err := conn.QueryRowContext(ctx,
+			`SELECT name FROM sqlite_master WHERE type='table' AND name=?`, table).Scan(&name); err != nil {
+			t.Fatalf("%s table missing: %v", table, err)
+		}
+	}
+	if !hasColumn(t, conn, "workspaces", "sandbox_id") {
+		t.Fatal("workspaces.sandbox_id column missing")
+	}
+	if !hasColumn(t, conn, "sessions", "agent_ref") {
+		t.Fatal("sessions.agent_ref column missing")
+	}
+	if !hasColumn(t, conn, "session_artifacts", "sha256") {
+		t.Fatal("session_artifacts.sha256 column missing")
 	}
 }
 

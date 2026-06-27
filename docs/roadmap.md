@@ -32,12 +32,12 @@ Workspace provisioning from profiles, image & snapshot store (local Docker + tar
 *Specs:* `define-image-and-snapshot-store`, `define-enterprise-admin-marketplace-sessions`
 
 ### Phase 6 — Extensibility & sources
-Configurable capability/knowledge sources, scope-hierarchy resolution, secrets references, MCP and adapter entry points.
-*Specs:* `define-client-server-runtime-config-sources`
+Configurable capability/knowledge sources, exact-path skill indexing, runtime adapter contracts, scope-hierarchy resolution, secrets references, MCP and adapter entry points.
+*Specs:* `define-client-server-runtime-config-sources`, `define-runtime-adapters-skill-index-install-profiles`
 
 ### Phase 7 — Marketplace & enterprise
-Internal catalog, third-party providers, standardized vs. custom modes, enterprise governance controls.
-*Specs:* `define-enterprise-admin-marketplace-sessions` (+ a future `define-marketplace-providers` for external publisher identity and verification)
+Internal catalog, third-party providers, standardized vs. custom modes, package profiles/presets, staged install/activation, enterprise governance controls.
+*Specs:* `define-enterprise-admin-marketplace-sessions`, `define-runtime-adapters-skill-index-install-profiles` (+ a future `define-marketplace-providers` for external publisher identity and verification)
 
 ### Phase 8 — Distributed mode
 Swap adapters: Postgres, object store, queue/event backend, remote/containerized worker pools. Concepts unchanged.

@@ -5,11 +5,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/convexideas/oktopus/internal/db"
+	"github.com/convexideas/oktopus/internal/store"
 )
 
 // TestSyncCapabilities loads the repo's seed registry, syncs it into a fresh
-// SQLite index, and verifies the capabilities table is populated and that a
+// relational index, and verifies the capabilities table is populated and that a
 // re-sync is idempotent (upsert, not duplicate-insert).
 func TestSyncCapabilities(t *testing.T) {
 	ctx := context.Background()
@@ -24,17 +24,16 @@ func TestSyncCapabilities(t *testing.T) {
 		t.Fatal("expected seed registry to contain capabilities")
 	}
 
-	dbPath := filepath.Join(t.TempDir(), "oktopus.db")
-	conn, err := db.Open(dbPath)
+	st, err := store.Open(ctx, "sqlite://"+filepath.Join(t.TempDir(), "oktopus.db"))
 	if err != nil {
-		t.Fatalf("open db: %v", err)
+		t.Fatalf("open store: %v", err)
 	}
-	defer conn.Close()
-	if _, err := db.Migrate(ctx, conn); err != nil {
+	defer st.Close()
+	if _, err := st.Migrate(ctx); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
 
-	n, err := SyncCapabilities(ctx, conn, reg)
+	n, err := SyncCapabilities(ctx, st.DB, reg)
 	if err != nil {
 		t.Fatalf("sync: %v", err)
 	}
@@ -43,7 +42,7 @@ func TestSyncCapabilities(t *testing.T) {
 	}
 
 	var count int
-	if err := conn.QueryRowContext(ctx, "SELECT COUNT(*) FROM capabilities").Scan(&count); err != nil {
+	if err := st.DB.QueryRowContext(ctx, "SELECT COUNT(*) FROM capabilities").Scan(&count); err != nil {
 		t.Fatalf("count capabilities: %v", err)
 	}
 	if count != len(reg.Capabilities) {
@@ -51,11 +50,11 @@ func TestSyncCapabilities(t *testing.T) {
 	}
 
 	// Re-sync must not create duplicates (ON CONFLICT upsert).
-	if _, err := SyncCapabilities(ctx, conn, reg); err != nil {
+	if _, err := SyncCapabilities(ctx, st.DB, reg); err != nil {
 		t.Fatalf("resync: %v", err)
 	}
 	var count2 int
-	if err := conn.QueryRowContext(ctx, "SELECT COUNT(*) FROM capabilities").Scan(&count2); err != nil {
+	if err := st.DB.QueryRowContext(ctx, "SELECT COUNT(*) FROM capabilities").Scan(&count2); err != nil {
 		t.Fatalf("recount capabilities: %v", err)
 	}
 	if count2 != count {

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/convexideas/oktopus/internal/db"
 	"github.com/convexideas/oktopus/internal/registry"
+	"github.com/convexideas/oktopus/internal/store"
 	"github.com/spf13/cobra"
 )
 
@@ -24,7 +24,7 @@ func newRegistryValidateCommand(opts *Options) *cobra.Command {
 	var noIndex bool
 	cmd := &cobra.Command{
 		Use:   "validate",
-		Short: "Validate local capability manifests and update the SQLite index",
+		Short: "Validate local capability manifests and update the capability index",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			reg, err := registry.Load(opts.RegistryPath)
 			if err != nil {
@@ -33,15 +33,15 @@ func newRegistryValidateCommand(opts *Options) *cobra.Command {
 
 			indexed := 0
 			if !noIndex {
-				conn, err := db.Open(opts.DBPath)
+				st, err := store.Open(cmd.Context(), opts.DatabaseURL)
 				if err != nil {
-					return fmt.Errorf("open index db (use --no-index to validate files only): %w", err)
+					return fmt.Errorf("open index store (use --no-index to validate files only): %w", err)
 				}
-				defer conn.Close()
-				if _, err := db.Migrate(cmd.Context(), conn); err != nil {
-					return fmt.Errorf("migrate index db: %w", err)
+				defer st.Close()
+				if _, err := st.Migrate(cmd.Context()); err != nil {
+					return fmt.Errorf("migrate index store: %w", err)
 				}
-				indexed, err = registry.SyncCapabilities(cmd.Context(), conn, reg)
+				indexed, err = registry.SyncCapabilities(cmd.Context(), st.DB, reg)
 				if err != nil {
 					return err
 				}
@@ -57,12 +57,12 @@ func newRegistryValidateCommand(opts *Options) *cobra.Command {
 			if noIndex {
 				fmt.Fprintf(cmd.OutOrStdout(), "ok: %d capabilities (files only, index skipped)\n", len(reg.Capabilities))
 			} else {
-				fmt.Fprintf(cmd.OutOrStdout(), "ok: %d capabilities (%d indexed to %s)\n", len(reg.Capabilities), indexed, opts.DBPath)
+				fmt.Fprintf(cmd.OutOrStdout(), "ok: %d capabilities (%d indexed to %s)\n", len(reg.Capabilities), indexed, opts.DatabaseURL)
 			}
 			return nil
 		},
 	}
-	cmd.Flags().BoolVar(&noIndex, "no-index", false, "validate manifest files only; do not write the SQLite index")
+	cmd.Flags().BoolVar(&noIndex, "no-index", false, "validate manifest files only; do not write the capability index")
 	return cmd
 }
 

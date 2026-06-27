@@ -15,12 +15,13 @@
 - [x] Define event severity enum: `debug|info|warn|error`.
 - [x] Add adversarial review `context` block with isolation semantics.
 - [x] Add `output_kind` (`artifact|stream|effect`) to the Job, orthogonal to run mode; acceptance branches on it.
+- [x] Define storage adapter boundary so core execution logic is not coupled to SQLite.
 
 ### Implementation Follow-up
 
 - [ ] Create Go module skeleton.
 - [ ] Add SQLite migrations for core tables.
-- [ ] Add repository/store interfaces.
+- [x] Add initial repository/store boundary for opening and migrating the relational store.
 - [ ] Add state transition helpers that always emit events (including `ExpireAttempt` with retry_policy check and `CarryForwardApproval`).
 - [ ] Add CLI commands for DB init, run creation/listing/showing, job listing, and event tailing.
 - [ ] Add tests for state transitions, event emission, and lease uniqueness.

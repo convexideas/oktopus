@@ -4,23 +4,17 @@
 
 - [x] Define local MVP repository layout.
 - [x] Define Go binary and CLI command surface.
-- [x] Define SQLite tables for core state.
-- [x] Define migration approach.
+- [x] Define installer PATH behavior for the CLI.
+- [x] Define storage boundary and migration approach.
 - [x] Define registry loading and validation behavior.
-- [x] Define run creation and workflow expansion behavior.
-- [x] Define state transition helper requirement.
-- [x] Define local worker MVP behavior.
-- [x] Define seed capabilities and starter workflows.
-- [x] Define test strategy and acceptance criteria.
-- [x] Decide TOML-first vs YAML-first manifest parser for MVP: YAML-first, with TOML compatibility for early seed manifests if needed.
+- [x] Reduce MVP scope to coding sessions only.
+- [x] Define Profile → Workspace → Session model.
+- [x] Define workspace materialization for sandbox startup.
+- [x] Define OpenShell as the first local sandbox provider.
+- [x] Define that secrets stay out of materialized workspace files/staging.
+- [x] Defer workflows/runs/jobs/workers/verifiers until session MVP works.
+- [x] Decide TOML-first vs YAML-first manifest parser for MVP: YAML-first.
 - [x] Decide exact Go CLI library or stdlib-only CLI: Cobra.
-- [x] Add `project_counters` table for race-free sequential run number generation.
-- [x] Define project auto-creation rules for `oktopus runs create`.
-- [x] Add `retry_policy_json` column to `jobs` table.
-- [x] Add `attempt_id` to `approvals` and `policy_decisions` tables.
-- [x] Add `oktopus registry propose` and `oktopus registry activate` to CLI command surface.
-- [x] Add `oktopus jobs retry` to CLI command surface.
-- [x] Add `ExpireAttempt` and `BlockJob` and `CarryForwardApproval` to state transition helpers.
 - [x] Validate OpenSpec with `openspec validate --all`.
 
 ### Implementation Follow-up
@@ -29,20 +23,26 @@
 - [x] Create Go module and `cmd/oktopus` entrypoint.
 - [x] Add Cobra CLI with `version`, `db init`, `db migrate`, `registry validate`, `registry list`, and `registry show`.
 - [x] Add migration runner and initial SQLite schema.
+- [x] Add store boundary over SQLite local adapter.
 - [x] Add registry loader for seed manifests.
-- [x] Add `project_counters` table to migration (0002_policy_retries.sql).
-- [x] Add `retry_policy_json` column to `jobs` table in migration (0002_policy_retries.sql).
-- [x] Add `attempt_id` column to `approvals` table in migration (0002); `policy_decisions.attempt_id` already in 0001.
-- [ ] Add `output_kind` column to `jobs` table in migration.
-- [x] Differentiate `db init` (create + apply all) from `db migrate` (apply pending, error if uninitialized).
-- [x] Write capability SQLite index from `registry validate` (with `--no-index` for file-only validation).
-- [ ] Add run creation that expands workflow steps into jobs with project auto-creation.
-- [ ] Add transactional state transition helpers with event emission.
-- [ ] Add local artifact store with sha256 finalization.
-- [ ] Add local worker registration/request/lease/heartbeat/complete flow.
-- [ ] Add `artifact-exists` and `command-exit-zero` verifiers.
-- [ ] Add `registry propose` and `registry activate` commands.
-- [ ] Add `jobs retry` command.
-- [x] Add `hello-local` workflow.
-- [x] Add `guarded-build` stub workflow with adversarial review jobs.
-- [ ] Add smoke integration test.
+- [x] Quarantine non-MVP registry artifacts.
+- [x] Add `profiles`, `workspaces`, `sessions`, `session_events`, and `session_artifacts` migration.
+- [ ] Add `profile init local` command.
+- [ ] Add `workspace create/list/show` commands.
+- [ ] Add `session start/list/show/log` commands.
+- [ ] Add workspace materialization for OpenShell startup.
+- [ ] Add generated session `AGENTS.md`.
+- [ ] Add local session artifact metadata with sha256 finalization.
+- [ ] Add OpenShell provider wrapper for sandbox create/connect/exec/logs.
+- [ ] Add `session attach` through OpenShell connect/TTY.
+- [ ] Add installer/package-manager setup so `oktopus` is available on `PATH`.
+- [ ] Add smoke test for profile → workspace → session → sandbox preparation.
+
+### Deferred
+
+- [ ] Run creation and workflow expansion.
+- [ ] Transactional job state transition helpers.
+- [ ] Worker registration/request/lease/heartbeat/complete flow.
+- [ ] Verifier execution.
+- [ ] `registry propose` and `registry activate` commands.
+- [ ] `jobs retry` command.
