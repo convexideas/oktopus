@@ -51,11 +51,18 @@ func TestSchemaTablesExist(t *testing.T) {
 		"profiles", "workspaces", "workspace_refs",
 		"sandbox_defs", "sandbox_instances", "sessions",
 		"messages", "message_parts", "message_attachments",
-		"capabilities", "skill_sources", "skill_index", "runtime_capabilities",
+		"capabilities",
 	}
 	for _, table := range tables {
 		if !hasTable(t, conn, table) {
 			t.Fatalf("table %s missing", table)
+		}
+	}
+
+	// Old tables should not exist.
+	for _, table := range []string{"skill_sources", "skill_index", "runtime_capabilities"} {
+		if hasTable(t, conn, table) {
+			t.Fatalf("%s should not exist in flattened schema", table)
 		}
 	}
 }

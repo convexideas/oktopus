@@ -190,7 +190,7 @@ func (c Capability) JSON() ([]byte, error) {
 
 // SyncCapabilities upserts every loaded capability into the relational
 // `capabilities` index table. Manifests remain the source of truth on disk, and
-// this table is a queryable mirror keyed by (kind, name, version). Returns the
+// this table is a queryable mirror keyed by (kind, name, version, scope). Returns the
 // number of rows written.
 func SyncCapabilities(ctx context.Context, db *sql.DB, reg *Registry) (int, error) {
 	tx, err := db.BeginTx(ctx, nil)
@@ -201,14 +201,22 @@ func SyncCapabilities(ctx context.Context, db *sql.DB, reg *Registry) (int, erro
 
 	const upsert = `
 INSERT INTO capabilities
-  (id, kind, name, version, source_json, status, manifest_path, manifest_json, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-ON CONFLICT(kind, name, version) DO UPDATE SET
-  source_json   = excluded.source_json,
-  status        = excluded.status,
-  manifest_path = excluded.manifest_path,
-  manifest_json = excluded.manifest_json,
-  updated_at    = excluded.updated_at;`
+  (id, kind, name, version, description, author, source_type, source_uri, source_ref,
+   trust_level, scope, status, requirements_json, manifest_path, manifest_json, hash, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(id) DO UPDATE SET
+  description       = excluded.description,
+  author            = excluded.author,
+  source_type       = excluded.source_type,
+  source_uri        = excluded.source_uri,
+  source_ref        = excluded.source_ref,
+  trust_level       = excluded.trust_level,
+  status            = excluded.status,
+  requirements_json = excluded.requirements_json,
+  manifest_path     = excluded.manifest_path,
+  manifest_json     = excluded.manifest_json,
+  hash              = excluded.hash,
+  updated_at        = excluded.updated_at;`
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	count := 0
@@ -218,18 +226,35 @@ ON CONFLICT(kind, name, version) DO UPDATE SET
 			return count, fmt.Errorf("%s: marshal manifest: %w", cap.Path, err)
 		}
 
-		var sourceJSON any
-		if src, ok := cap.Raw["source"]; ok {
-			b, err := json.Marshal(src)
-			if err != nil {
-				return count, fmt.Errorf("%s: marshal source: %w", cap.Path, err)
+		// Extract optional fields from manifest.
+		var author, sourceURI, sourceRef, trustLevel, scope, requirementsJSON *string
+		if v, ok := cap.Raw["author"].(string); ok {
+			author = &v
+		}
+		if src, ok := cap.Raw["source"].(map[string]any); ok {
+			if v, ok := src["uri"].(string); ok {
+				sourceURI = &v
 			}
-			sourceJSON = string(b)
+			if v, ok := src["ref"].(string); ok {
+				sourceRef = &v
+			}
+		}
+		if v, ok := cap.Raw["trust_level"].(string); ok {
+			trustLevel = &v
+		}
+		if v, ok := cap.Raw["scope"].(string); ok {
+			scope = &v
+		}
+		if req, ok := cap.Raw["requirements"]; ok {
+			b, _ := json.Marshal(req)
+			s := string(b)
+			requirementsJSON = &s
 		}
 
 		if _, err := tx.ExecContext(ctx, upsert,
-			cap.ID(), cap.Kind, cap.Name, cap.Version, sourceJSON, cap.Status,
-			cap.Path, string(manifestJSON), now, now,
+			cap.ID(), cap.Kind, cap.Name, cap.Version, cap.Description, author,
+			"local", sourceURI, sourceRef, trustLevel, scope, cap.Status,
+			requirementsJSON, cap.Path, string(manifestJSON), nil, now, now,
 		); err != nil {
 			return count, fmt.Errorf("%s: upsert capability: %w", cap.ID(), err)
 		}

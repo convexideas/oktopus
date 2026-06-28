@@ -108,81 +108,34 @@ CREATE TABLE IF NOT EXISTS message_attachments (
   FOREIGN KEY (message_id) REFERENCES messages(id)
 );
 
--- Capabilities: registry index (loaded from YAML manifests).
+-- Capabilities: unified registry index. All capability kinds in one table.
+-- Skills, tools, workflows, personas, runtimes, verifiers, adapters, policies, environments.
 CREATE TABLE IF NOT EXISTS capabilities (
   id TEXT PRIMARY KEY,
   kind TEXT NOT NULL,
   name TEXT NOT NULL,
   version TEXT NOT NULL,
-  source_json TEXT,
-  status TEXT NOT NULL,
-  manifest_path TEXT,
-  manifest_json TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL,
-  UNIQUE (kind, name, version)
-);
-
--- Skill sources: where skills are imported from.
-CREATE TABLE IF NOT EXISTS skill_sources (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  type TEXT NOT NULL,
-  uri TEXT,
-  ref TEXT,
-  scope TEXT,
-  trust_level TEXT,
-  version TEXT,
-  root_path TEXT,
-  metadata_json TEXT,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL,
-  UNIQUE (name, scope)
-);
-
--- Skill index: exact-path skill records.
-CREATE TABLE IF NOT EXISTS skill_index (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  description TEXT NOT NULL,
-  source_name TEXT NOT NULL,
+  description TEXT,
+  author TEXT,
   source_type TEXT NOT NULL,
   source_uri TEXT,
   source_ref TEXT,
-  scope TEXT,
-  path TEXT NOT NULL,
-  format TEXT NOT NULL,
   trust_level TEXT,
-  version TEXT NOT NULL,
-  hash TEXT NOT NULL,
-  metadata_json TEXT,
+  scope TEXT,
+  status TEXT NOT NULL,
+  requirements_json TEXT,
+  manifest_path TEXT,
+  manifest_json TEXT NOT NULL,
+  hash TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
-  UNIQUE (source_name, scope, name, version, path)
+  UNIQUE (kind, name, version, scope)
 );
 
--- Runtime capabilities: what each runtime supports.
-CREATE TABLE IF NOT EXISTS runtime_capabilities (
-  id TEXT PRIMARY KEY,
-  runtime TEXT NOT NULL,
-  version TEXT,
-  skills INTEGER NOT NULL DEFAULT 0,
-  mcp INTEGER NOT NULL DEFAULT 0,
-  subagents INTEGER NOT NULL DEFAULT 0,
-  slash_commands INTEGER NOT NULL DEFAULT 0,
-  model_override INTEGER NOT NULL DEFAULT 0,
-  streaming_output INTEGER NOT NULL DEFAULT 0,
-  artifact_writeback TEXT,
-  workspace_config INTEGER NOT NULL DEFAULT 0,
-  global_config INTEGER NOT NULL DEFAULT 0,
-  permission_hooks TEXT,
-  native_approvals INTEGER NOT NULL DEFAULT 0,
-  background_execution INTEGER NOT NULL DEFAULT 0,
-  interactive_mode INTEGER NOT NULL DEFAULT 0,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL,
-  UNIQUE (runtime, version)
-);
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_capabilities_kind ON capabilities(kind, status);
+CREATE INDEX IF NOT EXISTS idx_capabilities_author ON capabilities(author);
+CREATE INDEX IF NOT EXISTS idx_capabilities_scope ON capabilities(scope, kind);
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_sandbox_instances_workspace ON sandbox_instances(workspace_id);
@@ -192,5 +145,3 @@ CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id, sequence
 CREATE INDEX IF NOT EXISTS idx_messages_parent ON messages(parent_id);
 CREATE INDEX IF NOT EXISTS idx_message_parts_message ON message_parts(message_id, sequence);
 CREATE INDEX IF NOT EXISTS idx_message_attachments_message ON message_attachments(message_id);
-CREATE INDEX IF NOT EXISTS idx_skill_index_name ON skill_index(name);
-CREATE INDEX IF NOT EXISTS idx_skill_index_scope ON skill_index(scope);
