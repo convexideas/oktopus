@@ -70,6 +70,7 @@ type SandboxDef struct {
 	Name         string
 	Provider     string
 	BaseImageRef sql.NullString
+	PolicyRef    sql.NullString
 	CreatedAt    string
 }
 
@@ -77,12 +78,10 @@ type SandboxInstance struct {
 	ID                 string
 	SandboxDefID       string
 	WorkspaceID        string
-	OwnerSubject       string
-	ExecutionPrincipal sql.NullString
-	ResourceLimitsJson sql.NullString
-	GrantsJson         sql.NullString
-	EnvironmentJson    sql.NullString
+	Owner              string
+	RunAs              sql.NullString
 	ProviderSandboxID  sql.NullString
+	PolicySnapshotJson sql.NullString
 	Status             string
 	CreatedAt          string
 	UpdatedAt          string

@@ -11,8 +11,8 @@ import (
 )
 
 const createSandboxDef = `-- name: CreateSandboxDef :exec
-INSERT INTO sandbox_defs (id, name, provider, base_image_ref, created_at)
-VALUES (?, ?, ?, ?, ?)
+INSERT INTO sandbox_defs (id, name, provider, base_image_ref, policy_ref, created_at)
+VALUES (?, ?, ?, ?, ?, ?)
 `
 
 type CreateSandboxDefParams struct {
@@ -20,6 +20,7 @@ type CreateSandboxDefParams struct {
 	Name         string
 	Provider     string
 	BaseImageRef sql.NullString
+	PolicyRef    sql.NullString
 	CreatedAt    string
 }
 
@@ -29,6 +30,7 @@ func (q *Queries) CreateSandboxDef(ctx context.Context, arg CreateSandboxDefPara
 		arg.Name,
 		arg.Provider,
 		arg.BaseImageRef,
+		arg.PolicyRef,
 		arg.CreatedAt,
 	)
 	return err
@@ -36,22 +38,19 @@ func (q *Queries) CreateSandboxDef(ctx context.Context, arg CreateSandboxDefPara
 
 const createSandboxInstance = `-- name: CreateSandboxInstance :exec
 INSERT INTO sandbox_instances
-  (id, sandbox_def_id, workspace_id, owner_subject, execution_principal,
-   resource_limits_json, grants_json, environment_json, provider_sandbox_id,
-   status, created_at, updated_at, last_seen_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  (id, sandbox_def_id, workspace_id, owner, run_as, provider_sandbox_id,
+   policy_snapshot_json, status, created_at, updated_at, last_seen_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type CreateSandboxInstanceParams struct {
 	ID                 string
 	SandboxDefID       string
 	WorkspaceID        string
-	OwnerSubject       string
-	ExecutionPrincipal sql.NullString
-	ResourceLimitsJson sql.NullString
-	GrantsJson         sql.NullString
-	EnvironmentJson    sql.NullString
+	Owner              string
+	RunAs              sql.NullString
 	ProviderSandboxID  sql.NullString
+	PolicySnapshotJson sql.NullString
 	Status             string
 	CreatedAt          string
 	UpdatedAt          string
@@ -63,12 +62,10 @@ func (q *Queries) CreateSandboxInstance(ctx context.Context, arg CreateSandboxIn
 		arg.ID,
 		arg.SandboxDefID,
 		arg.WorkspaceID,
-		arg.OwnerSubject,
-		arg.ExecutionPrincipal,
-		arg.ResourceLimitsJson,
-		arg.GrantsJson,
-		arg.EnvironmentJson,
+		arg.Owner,
+		arg.RunAs,
 		arg.ProviderSandboxID,
+		arg.PolicySnapshotJson,
 		arg.Status,
 		arg.CreatedAt,
 		arg.UpdatedAt,
@@ -117,7 +114,7 @@ func (q *Queries) CreateWorkspaceRef(ctx context.Context, arg CreateWorkspaceRef
 }
 
 const getSandboxDef = `-- name: GetSandboxDef :one
-SELECT id, name, provider, base_image_ref, created_at FROM sandbox_defs WHERE id = ?
+SELECT id, name, provider, base_image_ref, policy_ref, created_at FROM sandbox_defs WHERE id = ?
 `
 
 func (q *Queries) GetSandboxDef(ctx context.Context, id string) (SandboxDef, error) {
@@ -128,13 +125,14 @@ func (q *Queries) GetSandboxDef(ctx context.Context, id string) (SandboxDef, err
 		&i.Name,
 		&i.Provider,
 		&i.BaseImageRef,
+		&i.PolicyRef,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getSandboxInstance = `-- name: GetSandboxInstance :one
-SELECT id, sandbox_def_id, workspace_id, owner_subject, execution_principal, resource_limits_json, grants_json, environment_json, provider_sandbox_id, status, created_at, updated_at, last_seen_at FROM sandbox_instances WHERE id = ?
+SELECT id, sandbox_def_id, workspace_id, owner, run_as, provider_sandbox_id, policy_snapshot_json, status, created_at, updated_at, last_seen_at FROM sandbox_instances WHERE id = ?
 `
 
 func (q *Queries) GetSandboxInstance(ctx context.Context, id string) (SandboxInstance, error) {
@@ -144,12 +142,10 @@ func (q *Queries) GetSandboxInstance(ctx context.Context, id string) (SandboxIns
 		&i.ID,
 		&i.SandboxDefID,
 		&i.WorkspaceID,
-		&i.OwnerSubject,
-		&i.ExecutionPrincipal,
-		&i.ResourceLimitsJson,
-		&i.GrantsJson,
-		&i.EnvironmentJson,
+		&i.Owner,
+		&i.RunAs,
 		&i.ProviderSandboxID,
+		&i.PolicySnapshotJson,
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -181,7 +177,7 @@ func (q *Queries) GetWorkspaceByName(ctx context.Context, name string) (Workspac
 }
 
 const listSandboxDefs = `-- name: ListSandboxDefs :many
-SELECT id, name, provider, base_image_ref, created_at FROM sandbox_defs ORDER BY name
+SELECT id, name, provider, base_image_ref, policy_ref, created_at FROM sandbox_defs ORDER BY name
 `
 
 func (q *Queries) ListSandboxDefs(ctx context.Context) ([]SandboxDef, error) {
@@ -198,6 +194,7 @@ func (q *Queries) ListSandboxDefs(ctx context.Context) ([]SandboxDef, error) {
 			&i.Name,
 			&i.Provider,
 			&i.BaseImageRef,
+			&i.PolicyRef,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -214,16 +211,16 @@ func (q *Queries) ListSandboxDefs(ctx context.Context) ([]SandboxDef, error) {
 }
 
 const listSandboxInstancesByOwner = `-- name: ListSandboxInstancesByOwner :many
-SELECT id, sandbox_def_id, workspace_id, owner_subject, execution_principal, resource_limits_json, grants_json, environment_json, provider_sandbox_id, status, created_at, updated_at, last_seen_at FROM sandbox_instances WHERE owner_subject = ? AND status = ? ORDER BY created_at DESC
+SELECT id, sandbox_def_id, workspace_id, owner, run_as, provider_sandbox_id, policy_snapshot_json, status, created_at, updated_at, last_seen_at FROM sandbox_instances WHERE owner = ? AND status = ? ORDER BY created_at DESC
 `
 
 type ListSandboxInstancesByOwnerParams struct {
-	OwnerSubject string
-	Status       string
+	Owner  string
+	Status string
 }
 
 func (q *Queries) ListSandboxInstancesByOwner(ctx context.Context, arg ListSandboxInstancesByOwnerParams) ([]SandboxInstance, error) {
-	rows, err := q.db.QueryContext(ctx, listSandboxInstancesByOwner, arg.OwnerSubject, arg.Status)
+	rows, err := q.db.QueryContext(ctx, listSandboxInstancesByOwner, arg.Owner, arg.Status)
 	if err != nil {
 		return nil, err
 	}
@@ -235,12 +232,10 @@ func (q *Queries) ListSandboxInstancesByOwner(ctx context.Context, arg ListSandb
 			&i.ID,
 			&i.SandboxDefID,
 			&i.WorkspaceID,
-			&i.OwnerSubject,
-			&i.ExecutionPrincipal,
-			&i.ResourceLimitsJson,
-			&i.GrantsJson,
-			&i.EnvironmentJson,
+			&i.Owner,
+			&i.RunAs,
 			&i.ProviderSandboxID,
+			&i.PolicySnapshotJson,
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,

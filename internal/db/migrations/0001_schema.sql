@@ -35,21 +35,20 @@ CREATE TABLE IF NOT EXISTS sandbox_defs (
   name TEXT NOT NULL UNIQUE,
   provider TEXT NOT NULL,
   base_image_ref TEXT,
+  policy_ref TEXT,
   created_at TEXT NOT NULL
 );
 
 -- Sandbox instances: user-bound running copies of a sandbox definition.
--- Records what was actually provisioned after policy/resource resolution.
+-- Records resolved state at creation time for audit.
 CREATE TABLE IF NOT EXISTS sandbox_instances (
   id TEXT PRIMARY KEY,
   sandbox_def_id TEXT NOT NULL,
   workspace_id TEXT NOT NULL,
-  owner_subject TEXT NOT NULL,
-  execution_principal TEXT,
-  resource_limits_json TEXT,
-  grants_json TEXT,
-  environment_json TEXT,
+  owner TEXT NOT NULL,
+  run_as TEXT,
   provider_sandbox_id TEXT,
+  policy_snapshot_json TEXT,
   status TEXT NOT NULL,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
@@ -139,7 +138,7 @@ CREATE INDEX IF NOT EXISTS idx_capabilities_scope ON capabilities(scope, kind);
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_sandbox_instances_workspace ON sandbox_instances(workspace_id);
-CREATE INDEX IF NOT EXISTS idx_sandbox_instances_owner ON sandbox_instances(owner_subject, status);
+CREATE INDEX IF NOT EXISTS idx_sandbox_instances_owner ON sandbox_instances(owner, status);
 CREATE INDEX IF NOT EXISTS idx_sessions_sandbox ON sessions(sandbox_instance_id);
 CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id, sequence);
 CREATE INDEX IF NOT EXISTS idx_messages_parent ON messages(parent_id);
