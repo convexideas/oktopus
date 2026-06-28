@@ -50,7 +50,7 @@ func TestSchemaTablesExist(t *testing.T) {
 	tables := []string{
 		"profiles", "workspaces", "workspace_refs",
 		"sandbox_defs", "sandbox_instances", "sessions",
-		"session_events", "session_artifacts",
+		"messages", "message_parts", "message_attachments",
 		"capabilities", "skill_sources", "skill_index", "runtime_capabilities",
 	}
 	for _, table := range tables {
@@ -60,7 +60,7 @@ func TestSchemaTablesExist(t *testing.T) {
 	}
 }
 
-func TestSchemaSessionModel(t *testing.T) {
+func TestSchemaMessageModel(t *testing.T) {
 	ctx := context.Background()
 	dbPath := filepath.Join(t.TempDir(), "oktopus.db")
 	conn, err := Open(dbPath)
@@ -72,26 +72,31 @@ func TestSchemaSessionModel(t *testing.T) {
 		t.Fatalf("migrate: %v", err)
 	}
 
-	// Sessions should reference sandbox_instance_id, not workspace_id directly.
-	if !hasColumn(t, conn, "sessions", "sandbox_instance_id") {
-		t.Fatal("sessions.sandbox_instance_id missing")
-	}
-	if hasColumn(t, conn, "sessions", "workspace_id") {
-		t.Fatal("sessions.workspace_id should not exist (reachable via sandbox)")
-	}
-
-	// Sandbox instances reference sandbox_defs.
-	if !hasColumn(t, conn, "sandbox_instances", "sandbox_def_id") {
-		t.Fatal("sandbox_instances.sandbox_def_id missing")
-	}
-	if !hasColumn(t, conn, "sandbox_instances", "execution_principal") {
-		t.Fatal("sandbox_instances.execution_principal missing")
+	// Messages have parent_id for lineage.
+	for _, col := range []string{"id", "session_id", "parent_id", "role", "sequence", "created_at"} {
+		if !hasColumn(t, conn, "messages", col) {
+			t.Fatalf("messages.%s missing", col)
+		}
 	}
 
-	// Sandbox defs exist with expected columns.
-	for _, col := range []string{"id", "name", "provider", "base_image_ref", "created_at"} {
-		if !hasColumn(t, conn, "sandbox_defs", col) {
-			t.Fatalf("sandbox_defs.%s missing", col)
+	// Message parts have type + content_json.
+	for _, col := range []string{"id", "message_id", "sequence", "type", "content_json"} {
+		if !hasColumn(t, conn, "message_parts", col) {
+			t.Fatalf("message_parts.%s missing", col)
+		}
+	}
+
+	// Message attachments have direction (input/output).
+	for _, col := range []string{"id", "message_id", "direction", "name", "uri"} {
+		if !hasColumn(t, conn, "message_attachments", col) {
+			t.Fatalf("message_attachments.%s missing", col)
+		}
+	}
+
+	// Old tables should not exist.
+	for _, table := range []string{"session_events", "session_artifacts"} {
+		if hasTable(t, conn, table) {
+			t.Fatalf("%s should not exist in new schema", table)
 		}
 	}
 }

@@ -70,32 +70,42 @@ CREATE TABLE IF NOT EXISTS sessions (
   FOREIGN KEY (sandbox_instance_id) REFERENCES sandbox_instances(id)
 );
 
--- Session events: append-only timeline of what happened in a session.
-CREATE TABLE IF NOT EXISTS session_events (
+-- Messages: the conversation record within a session.
+-- Each message has a role, optional parent (for branching/lineage), and ordered parts.
+CREATE TABLE IF NOT EXISTS messages (
   id TEXT PRIMARY KEY,
   session_id TEXT NOT NULL,
-  type TEXT NOT NULL,
-  actor_type TEXT,
-  actor_id TEXT,
-  message TEXT,
-  payload_json TEXT,
+  parent_id TEXT,
+  role TEXT NOT NULL,
+  sequence INTEGER NOT NULL,
   created_at TEXT NOT NULL,
-  FOREIGN KEY (session_id) REFERENCES sessions(id)
+  FOREIGN KEY (session_id) REFERENCES sessions(id),
+  FOREIGN KEY (parent_id) REFERENCES messages(id)
 );
 
--- Session artifacts: outputs produced during a session.
-CREATE TABLE IF NOT EXISTS session_artifacts (
+-- Message parts: ordered content blocks within a message.
+-- A single message may contain text + tool_call + reasoning interleaved.
+CREATE TABLE IF NOT EXISTS message_parts (
   id TEXT PRIMARY KEY,
-  session_id TEXT NOT NULL,
+  message_id TEXT NOT NULL,
+  sequence INTEGER NOT NULL,
   type TEXT NOT NULL,
+  content_json TEXT NOT NULL,
+  FOREIGN KEY (message_id) REFERENCES messages(id)
+);
+
+-- Message attachments: objects associated with a message (inputs or outputs).
+CREATE TABLE IF NOT EXISTS message_attachments (
+  id TEXT PRIMARY KEY,
+  message_id TEXT NOT NULL,
+  direction TEXT NOT NULL,
   name TEXT NOT NULL,
   uri TEXT NOT NULL,
   media_type TEXT,
   size_bytes INTEGER,
   sha256 TEXT,
-  producer_ref TEXT,
   created_at TEXT NOT NULL,
-  FOREIGN KEY (session_id) REFERENCES sessions(id)
+  FOREIGN KEY (message_id) REFERENCES messages(id)
 );
 
 -- Capabilities: registry index (loaded from YAML manifests).
@@ -178,7 +188,9 @@ CREATE TABLE IF NOT EXISTS runtime_capabilities (
 CREATE INDEX IF NOT EXISTS idx_sandbox_instances_workspace ON sandbox_instances(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_sandbox_instances_owner ON sandbox_instances(owner_subject, status);
 CREATE INDEX IF NOT EXISTS idx_sessions_sandbox ON sessions(sandbox_instance_id);
-CREATE INDEX IF NOT EXISTS idx_session_events_session ON session_events(session_id, created_at);
-CREATE INDEX IF NOT EXISTS idx_session_artifacts_session ON session_artifacts(session_id);
+CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id, sequence);
+CREATE INDEX IF NOT EXISTS idx_messages_parent ON messages(parent_id);
+CREATE INDEX IF NOT EXISTS idx_message_parts_message ON message_parts(message_id, sequence);
+CREATE INDEX IF NOT EXISTS idx_message_attachments_message ON message_attachments(message_id);
 CREATE INDEX IF NOT EXISTS idx_skill_index_name ON skill_index(name);
 CREATE INDEX IF NOT EXISTS idx_skill_index_scope ON skill_index(scope);
