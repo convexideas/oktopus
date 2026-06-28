@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestMigrateAppliesAllAndIsIdempotent(t *testing.T) {
+func TestMigrateAppliesAndIsIdempotent(t *testing.T) {
 	ctx := context.Background()
 	dbPath := filepath.Join(t.TempDir(), "oktopus.db")
 
@@ -21,8 +21,8 @@ func TestMigrateAppliesAllAndIsIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("first migrate: %v", err)
 	}
-	if len(applied) < 5 {
-		t.Fatalf("expected at least 5 migrations applied, got %d: %v", len(applied), applied)
+	if len(applied) != 1 {
+		t.Fatalf("expected 1 migration applied, got %d: %v", len(applied), applied)
 	}
 
 	// Second run must apply nothing (idempotent).
@@ -35,7 +35,7 @@ func TestMigrateAppliesAllAndIsIdempotent(t *testing.T) {
 	}
 }
 
-func TestMigration0002Schema(t *testing.T) {
+func TestSchemaTablesExist(t *testing.T) {
 	ctx := context.Background()
 	dbPath := filepath.Join(t.TempDir(), "oktopus.db")
 	conn, err := Open(dbPath)
@@ -47,112 +47,67 @@ func TestMigration0002Schema(t *testing.T) {
 		t.Fatalf("migrate: %v", err)
 	}
 
-	// project_counters table exists.
+	tables := []string{
+		"profiles", "workspaces", "workspace_refs",
+		"sandbox_defs", "sandbox_instances", "sessions",
+		"session_events", "session_artifacts",
+		"capabilities", "skill_sources", "skill_index", "runtime_capabilities",
+	}
+	for _, table := range tables {
+		if !hasTable(t, conn, table) {
+			t.Fatalf("table %s missing", table)
+		}
+	}
+}
+
+func TestSchemaSessionModel(t *testing.T) {
+	ctx := context.Background()
+	dbPath := filepath.Join(t.TempDir(), "oktopus.db")
+	conn, err := Open(dbPath)
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer conn.Close()
+	if _, err := Migrate(ctx, conn); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+
+	// Sessions should reference sandbox_instance_id, not workspace_id directly.
+	if !hasColumn(t, conn, "sessions", "sandbox_instance_id") {
+		t.Fatal("sessions.sandbox_instance_id missing")
+	}
+	if hasColumn(t, conn, "sessions", "workspace_id") {
+		t.Fatal("sessions.workspace_id should not exist (reachable via sandbox)")
+	}
+
+	// Sandbox instances reference sandbox_defs.
+	if !hasColumn(t, conn, "sandbox_instances", "sandbox_def_id") {
+		t.Fatal("sandbox_instances.sandbox_def_id missing")
+	}
+	if !hasColumn(t, conn, "sandbox_instances", "execution_principal") {
+		t.Fatal("sandbox_instances.execution_principal missing")
+	}
+
+	// Sandbox defs exist with expected columns.
+	for _, col := range []string{"id", "name", "provider", "base_image_ref", "created_at"} {
+		if !hasColumn(t, conn, "sandbox_defs", col) {
+			t.Fatalf("sandbox_defs.%s missing", col)
+		}
+	}
+}
+
+func hasTable(t *testing.T, conn *sql.DB, table string) bool {
+	t.Helper()
 	var name string
-	if err := conn.QueryRowContext(ctx,
-		`SELECT name FROM sqlite_master WHERE type='table' AND name='project_counters'`).Scan(&name); err != nil {
-		t.Fatalf("project_counters table missing: %v", err)
+	err := conn.QueryRowContext(context.Background(),
+		`SELECT name FROM sqlite_master WHERE type='table' AND name=?`, table).Scan(&name)
+	if err == sql.ErrNoRows {
+		return false
 	}
-
-	// jobs.retry_policy_json column exists.
-	if !hasColumn(t, conn, "jobs", "retry_policy_json") {
-		t.Fatal("jobs.retry_policy_json column missing")
-	}
-	// approvals.attempt_id column exists.
-	if !hasColumn(t, conn, "approvals", "attempt_id") {
-		t.Fatal("approvals.attempt_id column missing")
-	}
-}
-
-func TestMigration0003Schema(t *testing.T) {
-	ctx := context.Background()
-	dbPath := filepath.Join(t.TempDir(), "oktopus.db")
-	conn, err := Open(dbPath)
 	if err != nil {
-		t.Fatalf("open: %v", err)
+		t.Fatalf("query table %s: %v", table, err)
 	}
-	defer conn.Close()
-	if _, err := Migrate(ctx, conn); err != nil {
-		t.Fatalf("migrate: %v", err)
-	}
-
-	for _, table := range []string{"skill_sources", "skill_index", "runtime_capabilities"} {
-		var name string
-		if err := conn.QueryRowContext(ctx,
-			`SELECT name FROM sqlite_master WHERE type='table' AND name=?`, table).Scan(&name); err != nil {
-			t.Fatalf("%s table missing: %v", table, err)
-		}
-	}
-	if !hasColumn(t, conn, "skill_index", "path") {
-		t.Fatal("skill_index.path column missing")
-	}
-	if !hasColumn(t, conn, "runtime_capabilities", "interactive_mode") {
-		t.Fatal("runtime_capabilities.interactive_mode column missing")
-	}
-}
-
-func TestMigration0004Schema(t *testing.T) {
-	ctx := context.Background()
-	dbPath := filepath.Join(t.TempDir(), "oktopus.db")
-	conn, err := Open(dbPath)
-	if err != nil {
-		t.Fatalf("open: %v", err)
-	}
-	defer conn.Close()
-	if _, err := Migrate(ctx, conn); err != nil {
-		t.Fatalf("migrate: %v", err)
-	}
-
-	for _, table := range []string{"profiles", "workspaces", "sessions", "session_events", "session_artifacts"} {
-		var name string
-		if err := conn.QueryRowContext(ctx,
-			`SELECT name FROM sqlite_master WHERE type='table' AND name=?`, table).Scan(&name); err != nil {
-			t.Fatalf("%s table missing: %v", table, err)
-		}
-	}
-	if !hasColumn(t, conn, "workspaces", "sandbox_id") {
-		t.Fatal("workspaces.sandbox_id column missing")
-	}
-	if !hasColumn(t, conn, "sessions", "agent_ref") {
-		t.Fatal("sessions.agent_ref column missing")
-	}
-	if !hasColumn(t, conn, "session_artifacts", "sha256") {
-		t.Fatal("session_artifacts.sha256 column missing")
-	}
-}
-
-func TestMigration0005Schema(t *testing.T) {
-	ctx := context.Background()
-	dbPath := filepath.Join(t.TempDir(), "oktopus.db")
-	conn, err := Open(dbPath)
-	if err != nil {
-		t.Fatalf("open: %v", err)
-	}
-	defer conn.Close()
-	if _, err := Migrate(ctx, conn); err != nil {
-		t.Fatalf("migrate: %v", err)
-	}
-
-	var name string
-	if err := conn.QueryRowContext(ctx,
-		`SELECT name FROM sqlite_master WHERE type='table' AND name='sandbox_instances'`).Scan(&name); err != nil {
-		t.Fatalf("sandbox_instances table missing: %v", err)
-	}
-	for _, col := range []string{"scope", "default_sandbox_provider", "default_agent_ref"} {
-		if !hasColumn(t, conn, "profiles", col) {
-			t.Fatalf("profiles.%s column missing", col)
-		}
-	}
-	for _, col := range []string{"scope", "version", "definition_hash", "source_type", "source_uri", "source_ref", "created_by"} {
-		if !hasColumn(t, conn, "workspaces", col) {
-			t.Fatalf("workspaces.%s column missing", col)
-		}
-	}
-	for _, col := range []string{"owner_subject", "provider", "provider_sandbox_id", "credential_scope"} {
-		if !hasColumn(t, conn, "sandbox_instances", col) {
-			t.Fatalf("sandbox_instances.%s column missing", col)
-		}
-	}
+	return true
 }
 
 func hasColumn(t *testing.T, conn *sql.DB, table, column string) bool {
