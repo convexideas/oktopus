@@ -48,7 +48,7 @@ func TestSchemaTablesExist(t *testing.T) {
 	}
 
 	tables := []string{
-		"profiles", "workspaces", "workspace_refs",
+		"users", "workspaces", "workspace_refs",
 		"sandbox_defs", "sandbox_instances", "sessions",
 		"messages", "message_parts", "message_attachments",
 		"capabilities",

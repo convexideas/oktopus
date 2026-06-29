@@ -9,6 +9,7 @@
 - [x] Define registry loading and validation behavior.
 - [x] Reduce MVP scope to coding sessions only.
 - [x] Define Profile → Workspace → Sandbox → Session model.
+- [x] Simplify MVP data model to profiles, reusable workspace templates, sandbox instances, sessions, events, and artifacts.
 - [x] Define workspace materialization for sandbox startup.
 - [x] Define OpenShell as the first local sandbox provider.
 - [x] Define that secrets stay out of materialized workspace files/staging.
@@ -29,6 +30,7 @@
 - [x] Add `profiles`, `workspaces`, `sessions`, `session_events`, and `session_artifacts` migration.
 - [x] Add `profile init local` command.
 - [x] Add immutable workspace fields and `sandbox_instances` migration.
+- [x] Simplify profile/workspace/session/sandbox tables for MVP-only fields.
 - [ ] Add `workspace create/list/show/fork` commands.
 - [ ] Add `session start/list/show/log` commands.
 - [ ] Add workspace materialization for OpenShell startup.

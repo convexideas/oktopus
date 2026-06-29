@@ -1,9 +1,12 @@
 -- Oktopus MVP schema (flat, no incremental migrations during development)
 
--- Profiles: named local/user identity for defaults and preferences.
-CREATE TABLE IF NOT EXISTS profiles (
+-- Users: identity records. Profiles (local config + tokens) live on disk, not in DB.
+CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
-  name TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  email TEXT,
+  external_id TEXT,
+  status TEXT NOT NULL,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );

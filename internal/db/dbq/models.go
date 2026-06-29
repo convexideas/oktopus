@@ -58,13 +58,6 @@ type MessagePart struct {
 	ContentJson string
 }
 
-type Profile struct {
-	ID        string
-	Name      string
-	CreatedAt string
-	UpdatedAt string
-}
-
 type SandboxDef struct {
 	ID           string
 	Name         string
@@ -96,6 +89,16 @@ type Session struct {
 	CreatedBy         sql.NullString
 	CreatedAt         string
 	UpdatedAt         string
+}
+
+type User struct {
+	ID         string
+	Name       string
+	Email      sql.NullString
+	ExternalID sql.NullString
+	Status     string
+	CreatedAt  string
+	UpdatedAt  string
 }
 
 type Workspace struct {

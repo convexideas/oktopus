@@ -24,7 +24,7 @@ func TestInitLocalProfileIsIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("init local: %v", err)
 	}
-	if p.Name != "local" || p.DefaultSandboxProvider != "openshell" {
+	if p.Name != "local" {
 		t.Fatalf("unexpected profile: %+v", p)
 	}
 	if _, err := InitLocal(ctx, st.DB, opts); err != nil {

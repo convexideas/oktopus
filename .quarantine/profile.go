@@ -45,7 +45,7 @@ func newProfileInitCommand(opts *Options) *cobra.Command {
 			if opts.JSON {
 				return json.NewEncoder(cmd.OutOrStdout()).Encode(p)
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "ok: profile %s (%s)\n", p.Name, p.DefaultSandboxProvider)
+			fmt.Fprintf(cmd.OutOrStdout(), "ok: profile %s\n", p.Name)
 			return nil
 		},
 	}
@@ -74,7 +74,7 @@ func newProfileListCommand(opts *Options) *cobra.Command {
 				return json.NewEncoder(cmd.OutOrStdout()).Encode(profiles)
 			}
 			for _, p := range profiles {
-				fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%s\n", p.Name, p.Status, p.DefaultSandboxProvider)
+				fmt.Fprintf(cmd.OutOrStdout(), "%s\n", p.Name)
 			}
 			return nil
 		},

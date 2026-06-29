@@ -27,9 +27,9 @@ Oktopus SHALL separate profile defaults, immutable workspace definitions, user-b
 #### Scenario: Create immutable workspace from local path
 
 - **WHEN** a developer runs `oktopus workspace create <name> --path <path>`
-- **THEN** Oktopus records an immutable workspace definition pointing at the local coding directory or source reference
-- **AND** the workspace stores shared/global references only, not user secrets
-- **AND** later sandbox startup can copy, mount, or upload that workspace into an isolated runtime
+- **THEN** Oktopus records an immutable workspace definition made from refs such as environment, runtime, context, tools, MCP servers, connections, and stores
+- **AND** the workspace stores shared/global references and required grant classes only, not user secrets
+- **AND** later sandbox startup can copy, mount, or upload the resolved workspace context into an isolated runtime
 
 #### Scenario: Fork workspace to change configuration
 
@@ -40,7 +40,8 @@ Oktopus SHALL separate profile defaults, immutable workspace definitions, user-b
 #### Scenario: Create user-bound sandbox instance
 
 - **WHEN** a user starts or resumes a session that needs execution
-- **THEN** Oktopus creates or selects a sandbox instance for that user, workspace, profile, and session
+- **THEN** Oktopus creates or selects a sandbox instance for that user, workspace, and session
+- **AND** the sandbox records its owner subject, execution principal, provider, provider sandbox id, and resolved grants
 - **AND** user credentials, login state, and secret access remain scoped to that sandbox instance
 
 #### Scenario: Share session without sharing sandbox secrets
