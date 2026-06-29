@@ -18,12 +18,16 @@ import (
 var migrationFS embed.FS
 
 func Open(path string) (*sql.DB, error) {
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return nil, fmt.Errorf("create db dir: %w", err)
+	if path == "" {
+		return nil, fmt.Errorf("database path is empty")
 	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return nil, fmt.Errorf("create database directory: %w", err)
+	}
+
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
-		return nil, fmt.Errorf("open sqlite: %w", err)
+		return nil, fmt.Errorf("open sqlite database: %w", err)
 	}
 	if _, err := db.Exec(`PRAGMA foreign_keys = ON;`); err != nil {
 		db.Close()
@@ -33,23 +37,19 @@ func Open(path string) (*sql.DB, error) {
 }
 
 func Migrate(ctx context.Context, db *sql.DB) ([]string, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database is nil")
+	}
 	if _, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS schema_migrations (version TEXT PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT (datetime('now')));`); err != nil {
 		return nil, fmt.Errorf("ensure schema_migrations: %w", err)
 	}
 
-	entries, err := fs.ReadDir(migrationFS, "migrations")
+	files, err := migrationFiles()
 	if err != nil {
-		return nil, fmt.Errorf("read migrations: %w", err)
+		return nil, err
 	}
-	var files []string
-	for _, entry := range entries {
-		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".sql") {
-			files = append(files, entry.Name())
-		}
-	}
-	sort.Strings(files)
 
-	var applied []string
+	applied := make([]string, 0, len(files))
 	for _, file := range files {
 		version := strings.TrimSuffix(file, ".sql")
 		done, err := migrationApplied(ctx, db, version)
@@ -59,6 +59,7 @@ func Migrate(ctx context.Context, db *sql.DB) ([]string, error) {
 		if done {
 			continue
 		}
+
 		body, err := migrationFS.ReadFile("migrations/" + file)
 		if err != nil {
 			return applied, fmt.Errorf("read migration %s: %w", file, err)
@@ -81,6 +82,22 @@ func Migrate(ctx context.Context, db *sql.DB) ([]string, error) {
 		applied = append(applied, version)
 	}
 	return applied, nil
+}
+
+func migrationFiles() ([]string, error) {
+	entries, err := fs.ReadDir(migrationFS, "migrations")
+	if err != nil {
+		return nil, fmt.Errorf("read migrations: %w", err)
+	}
+
+	var files []string
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".sql") {
+			files = append(files, entry.Name())
+		}
+	}
+	sort.Strings(files)
+	return files, nil
 }
 
 func migrationApplied(ctx context.Context, db *sql.DB, version string) (bool, error) {

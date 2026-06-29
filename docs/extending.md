@@ -15,7 +15,6 @@ Proprietary and internal systems plug in through:
 
 The platform defines the open socket; the specific connectors are implementations you (or providers) build — versioned and governed by the registry.
 
-→ Spec: `define-client-server-runtime-config-sources`
 
 ## The governed supply chain
 
@@ -31,7 +30,6 @@ project / run      local customization
 
 Unlike a vendor's closed plugin store, **every capability — open, third-party, or proprietary — passes the same gates**: trust tier, signature/provenance, sandbox dry-run, scoped activation, and policy. You consume a third-party tool with the exact controls you apply to your own.
 
-→ Specs: `define-capability-registry-model`, `define-enterprise-admin-marketplace-sessions`
 
 ## Capabilities
 
@@ -47,7 +45,6 @@ The building blocks you add and compose — each a versioned, governed registry 
 
 You rarely build a runtime: take an off-the-shelf harness and customize it through these primitives — your personas, skills, tools, and policy apply on top of whatever runtime executes, so the harness is shaped by portable patterns instead of per-person config. Imported packs are read-only by default; local definitions can shadow them by policy.
 
-→ Spec: `define-capability-registry-model`. See [Concepts](concepts.md) for the full primitive model.
 
 ## Configuration and the scope hierarchy
 
@@ -59,13 +56,11 @@ builtin < upstream_pack < org < client < project < workflow < run_override
 
 Higher scope can narrow permissions freely; **broadening** permissions (more tools, secrets, network, data access) requires policy evaluation and approval. The same ladder governs both capabilities and configuration.
 
-→ Spec: `define-client-server-runtime-config-sources`
 
 ## Secrets, credentials, and data sources
 
 Secrets and API keys are distributed centrally and referenced, never embedded — held by the control plane, scoped per org/team/project, and policy-gated on use (`secret_read`), so access is attributable in the event log and governable against budgets. Data and knowledge sources — internal (vaults, vector stores, private APIs) and third-party (external APIs, SaaS feeds) — attach with access policy and redaction, so sensitive data is governed before any worker sees it.
 
-→ Specs: `define-client-server-runtime-config-sources`, `define-artifacts-verifiers-policy`
 
 ## Enterprise governance and the marketplace
 
@@ -76,4 +71,3 @@ In an organization, customization is bounded by control:
 - **Standardized vs. user-custom modes** — admins can mandate fixed workflows/workspace profiles, or allow user customization within policy.
 - **Governance controls** — provenance, signing, approval gates, and audit on every addition and activation.
 
-→ Spec: `define-enterprise-admin-marketplace-sessions`

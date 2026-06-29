@@ -34,7 +34,6 @@ The controller owns state; workers are disposable and lease bounded work.
 - **Artifact / Event** — durable evidence and the append-only audit log.
 - **Capability** — any versioned, governed unit in the registry (the primitives below).
 
-→ Specs: `define-core-run-job-event-model`, `define-worker-lease-protocol`
 
 ## Capabilities & primitives
 
@@ -59,7 +58,6 @@ A runtime runs a persona in an environment, using tools/adapters and skills, und
 
 You rarely build a runtime: take an off-the-shelf harness (Claude Code, Codex, …) and customize it through the standard primitives — the same persona, skills, tools, and policy apply on top of whatever runtime executes. The harness is shaped by portable, governed patterns, not configured ad hoc per person.
 
-→ Spec: `define-capability-registry-model`
 
 ## Evidence: artifact, stream, effect
 
@@ -69,25 +67,21 @@ Not all output is a stored file. A job is accepted when its work verifies in its
 - **stream** — a conversational/stdout message delivered to a channel; verified by delivery, not a stored blob.
 - **effect** — a state change on a real system (codebase edit, deploy, API call); verified by its consequence.
 
-→ Spec: `define-artifacts-verifiers-policy`
 
 ## Workers and the lease protocol
 
 Workers poll, match by capability/labels/policy, and **atomically** lease one job at a time. Leases have TTLs and heartbeats; a crashed worker's lease expires and the job is requeued or failed per its retry policy. The controller stays the source of truth so workers remain disposable.
 
-→ Spec: `define-worker-lease-protocol`
 
 ## Workspaces, sessions, and images
 
 Interactive and long-running work runs in a **workspace** — a persistent, warm environment bound to a session you can pause, resume, and revitalize. Workspaces are materialized from content-addressed **images** and captured as **snapshots**, stored in a dedicated image/snapshot backend distinct from run artifacts.
 
-→ Specs: `define-enterprise-admin-marketplace-sessions`, `define-image-and-snapshot-store`
 
 ## Context
 
 **Context** is the high-level name for the durable layer the control plane owns so work carries across runs and runtimes — switch the model, keep the context. Within it, **memory** is a distinct, longer-lived piece: scoped knowledge (user, team, org) that *accumulates* across runs and is reused by whichever runtime executes next. Context also covers a run or thread's live working set — artifacts, decisions, approvals, references — so a task can pause, resume, or move. Both are owned by the control plane, not the agent.
 
-→ Spec: `define-enterprise-admin-marketplace-sessions`
 
 ## Two axes of work
 

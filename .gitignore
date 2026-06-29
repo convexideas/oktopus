@@ -3,5 +3,3 @@
 runs/*
 !runs/.gitkeep
 
-# MkDocs build output
-site/

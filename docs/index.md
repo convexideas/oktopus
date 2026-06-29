@@ -63,10 +63,7 @@ flowchart LR
 
 ## Read next
 
-- [Architecture](architecture.md) — layers, boundaries, and build order
 - [Concepts](concepts.md) — the model: entities, workers, evidence, primitives
 - [Extending](extending.md) — capabilities, sources, governance
-- [Specifications](specs.md) — normative requirements (the source of truth)
-- [Roadmap](roadmap.md) — build phases
 
 Specs are the source of truth for behavior; this book links to them rather than restating them.
