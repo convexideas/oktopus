@@ -3,32 +3,50 @@ package cli
 import (
 	"context"
 	"fmt"
-	"io"
+	"os"
+
+	"github.com/spf13/cobra"
 )
 
 const Version = "0.1.0"
 
-func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
-	if len(args) == 0 || args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
-		printUsage(stdout)
-		return 0
-	}
-
-	switch args[0] {
-	case "version":
-		fmt.Fprintln(stdout, Version)
-		return 0
-	default:
-		fmt.Fprintf(stderr, "unknown command: %s\n", args[0])
-		printUsage(stderr)
+// Execute runs the CLI.
+func Execute(ctx context.Context) int {
+	app, err := NewApp()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		return 1
 	}
+	defer app.Close()
+
+	root := &cobra.Command{
+		Use:   "ok",
+		Short: "Oktopus — a governed operating system for agentic work",
+	}
+
+	root.AddCommand(
+		newVersionCmd(),
+		newRunCmd(app),
+		newSessionsCmd(app),
+		newCapabilitiesCmd(app),
+		newWorkspaceCmd(app),
+		newProfileCmd(app),
+		newMemoryCmd(app),
+	)
+
+	root.SetContext(ctx)
+	if err := root.Execute(); err != nil {
+		return 1
+	}
+	return 0
 }
 
-func printUsage(w io.Writer) {
-	fmt.Fprintln(w, "usage: oktopus <command>")
-	fmt.Fprintln(w)
-	fmt.Fprintln(w, "commands:")
-	fmt.Fprintln(w, "  version  print version")
-	fmt.Fprintln(w, "  db       manage the local database")
+func newVersionCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "version",
+		Short: "Print version",
+		Run: func(cmd *cobra.Command, args []string) {
+			cmd.Println(Version)
+		},
+	}
 }

@@ -1,5 +1,6 @@
+# Local state
 .oktopus/
 .lean-ctx/
-runs/*
-!runs/.gitkeep
 
+# Build output
+ok
