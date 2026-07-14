@@ -139,12 +139,11 @@ CREATE TABLE IF NOT EXISTS capabilities (
 -- Episodes: raw captures from sessions. Harness-neutral.
 CREATE TABLE IF NOT EXISTS episodes (
   id TEXT PRIMARY KEY,
-  session_id TEXT NOT NULL,
+  session_id TEXT NOT NULL DEFAULT '',
   workspace_id TEXT NOT NULL DEFAULT '',
   source TEXT NOT NULL,
   content TEXT NOT NULL,
-  captured_at TEXT NOT NULL,
-  FOREIGN KEY (session_id) REFERENCES sessions(id)
+  captured_at TEXT NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_episodes_session ON episodes(session_id);

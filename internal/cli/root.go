@@ -26,6 +26,7 @@ func Execute(ctx context.Context) int {
 
 	root.AddCommand(
 		newVersionCmd(),
+		newInitCmd(app),
 		newRunCmd(app),
 		newSessionsCmd(app),
 		newCapabilitiesCmd(app),

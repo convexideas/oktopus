@@ -86,7 +86,7 @@ func newMemoryListCmd(app *App) *cobra.Command {
 						break
 					}
 				}
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", ep.ID[:8], ep.SessionID[:8], ep.Source, ep.CapturedAt, preview)
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", ep.ID[:8], shortID(ep.SessionID), ep.Source, ep.CapturedAt, preview)
 			}
 			w.Flush()
 			return nil
@@ -96,4 +96,14 @@ func newMemoryListCmd(app *App) *cobra.Command {
 	cmd.Flags().StringVarP(&workspaceFlag, "workspace", "w", "", "Filter by workspace")
 	cmd.Flags().IntVarP(&limitFlag, "limit", "n", 10, "Number of episodes to show")
 	return cmd
+}
+
+func shortID(id string) string {
+	if len(id) >= 8 {
+		return id[:8]
+	}
+	if id == "" {
+		return "-"
+	}
+	return id
 }
