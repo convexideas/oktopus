@@ -1,41 +1,34 @@
 # Build Plan
 
-Captured: 2026-07-12
+Updated: 2026-07-16
+
+See also: [Entity Definitions](entity-definitions.md) | [Memory Ontology](memory-ontology.md)
 
 ## Design Principles
 
-- **Idiomatic Go** — stdlib-first, interfaces at consumption boundaries, small packages
-- **Clean Architecture** — domain types are pure structs, business logic in app layer, infrastructure adapts
+- **Go, idiomatic** — stdlib-first, interfaces at consumption boundaries
+- **DDD** — bounded contexts own their entities, clean boundaries
 - **Pi-first** — build deep for one harness, generalize later
-- **Small increments** — each change is reviewable, testable, independently useful
-
-## Core Mental Model
-
-```
-Profile (who I am)  +  Persona (what role)  +  Workspace (what code)  →  Session (in a sandbox)
-```
-
-- **Profile** — user's complete runtime identity: extensions, model prefs, tool permissions, harness-specific config. Deeply personal. Enterprise adds mandatory overrides later.
-- **Persona** — a portable role definition: system prompt, skills, output format. Not bound to a user.
-- **Workspace** — declares what resources exist (source refs, connectors, knowledge). Never mutated.
-- **Session** — execution instance. Creates a sandbox, materializes profile + persona + workspace into it, launches harness, captures output.
-- **Sandbox** — isolated directory where everything lands. User's workspace is never clobbered.
+- **Portal-native** — entities designed as if portal exists, stored locally for now
+- **Memory is the moat** — every session makes the next one smarter
 
 ## Architecture
 
 ```
 internal/
-  domain/          pure structs (zero deps)
-  store/           persistence interfaces
-  store/sqlite/    SQLite adapter (sqlx + squirrel)
-  config/          app config (koanf: defaults → file → env)
-  parser/          YAML manifest → domain types (koanf + validator)
-  harness/         Harness interface + ProcessAdapter base
-  harness/pi/      Pi-specific adapter (full config translation)
-  harness/codex/   (future)
-  harness/kiro/    (future)
-  policy/          Hook interface
-  cli/             cobra commands + App struct (DI)
+  identity/       Profile (preferences + harness config)
+  registry/       Capabilities (personas, skills, tools) + manifest parsing
+  execution/      Session, Workspace, Sandbox, Harness, Assembler
+    pi/           Pi adapter (ArgsBuilder + ReadConversation)
+    codex/        Codex adapter
+    kiro/         Kiro adapter
+    claude/       Claude adapter
+  memory/         Episodes, summaries, future: semantic store
+  policy/         Hooks (enforcement at every level)
+  importer/       Onboarding from existing harnesses
+  config/         App config (koanf)
+  store/sqlite/   Persistence (portal API adapter later)
+  cli/            Commands (thin delegates)
 ```
 
 ## Completed
@@ -45,119 +38,70 @@ internal/
 | 1 | Persona manifest schema + parser |
 | 2 | `ok capabilities add/list` |
 | 3 | `ok workspace create/list/show` |
-| 4 | `ok run --persona --workspace --runtime` + resolution chain |
-| 5 | Clean architecture refactor (domain, store, config, parser, App DI) |
-| 6 | Cobra CLI + harness adapters registered (pi, codex, kiro, claude-code) |
+| 4 | `ok run` with --persona, --workspace, --runtime, --task |
+| 5 | DDD refactor (identity, registry, execution, memory bounded contexts) |
+| 6 | Profile with preferences + harness config |
+| 7 | Pi adapter (ArgsBuilder, model, tools, non-interactive) |
+| 8 | Memory capture (stdout, all modes) + LLM summaries + pre-session injection |
+| 9 | `ok init` (import Pi settings + session history) |
+| 10 | Assembler (layout-driven, generic across harnesses) |
 
-## Phase 2: Profile + Sandbox + Pi Deep Customization
-
-Focus: make `ok run -r pi` the best possible governed Pi experience.
-
-| # | What | Details |
-|---|------|---------|
-| 7 | **Profile entity** | Schema: extensions (MCP servers), model prefs, tool permissions, harness-specific sections. Stored in DB. `ok profile show`, `ok profile set pi.extensions [...]` |
-| 8 | **Sandbox abstraction** | Interface: `Create(workspace, profile, persona) → SandboxDir`. Simplest provider: temp dir with workspace source linked/copied in. Session launches harness pointing at sandbox. |
-| 9 | **Session assembly** | Merge: profile + persona + workspace → materialized sandbox. For Pi: `.pi/extensions.json` (profile), `.pi/SYSTEM.md` (persona), `.pi/skills/` (persona), workspace source (workspace). |
-| 10 | **Pi adapter: full config translation** | Translate Config → Pi flags: `--model`, `--system-prompt`/`--append-system-prompt`, `--tools`/`--exclude-tools`, env vars. Materialize files into sandbox (not workspace). |
-| 11 | **Pi adapter: non-interactive mode** | `--print -p <prompt>` for headless runs. Exposed via `ok run -r pi --task "review this code"`. |
-| 12 | **End-to-end verification** | `ok run -p code-reviewer -r pi -w my-project` creates sandbox, materializes persona files, launches Pi with correct flags, records session. |
-
-## Phase 3: Memory
-
-Focus: sessions produce durable knowledge that improves future sessions.
+## Current Phase: Sandbox + Native Capture
 
 | # | What | Details |
 |---|------|---------|
-| 13 | **Episodic capture** | Post-session: capture raw output (stdout/log) as an episode bound to the session. |
-| 14 | **Memory extraction** | Periodic or on-demand: distill episodes → semantic facts (Mem0 API or local extraction). |
-| 15 | **Pre-session injection** | Before launch: query semantic memory for relevant context, inject into persona system prompt or `.pi/SYSTEM.md`. |
-| 16 | **Memory scoping** | Per-workspace, per-persona, or global. User controls what context carries over where. |
+| 11 | **Sandbox redesign** | Stable paths (`~/.ok/<workspace>/sandboxes/<name>/home/`). HOME redirect. No workspace cloning. Persistent. |
+| 12 | **`ok sandbox create/exec/list`** | User-facing commands. Create named sandbox, enter it (shell with HOME redirected), list existing. |
+| 13 | **Harness reads sandbox HOME** | `ReadConversation(sandboxHome)` on Harness interface. Pi reads its JSONL from sandbox. Base returns stdout fallback. |
+| 14 | **Update `ok run`** | Use new sandbox. Wire sandbox env (HOME) into harness. Call ReadConversation post-session. |
+| 15 | **Bare `ok run`** | Profile defaults (default_runtime) make flags optional. `ok run` in a workspace just works. |
 
-## Phase 4: Generalize + Workflows
-
-Focus: apply the Pi patterns to other harnesses, add multi-step orchestration.
+## Next Phase: Policy + Governance
 
 | # | What | Details |
 |---|------|---------|
-| 17 | **Codex adapter** | `AGENTS.md` materialization, `codex -q` non-interactive. |
-| 18 | **Kiro adapter** | `.kiro/steering/*.md` materialization. |
-| 19 | **Workflow capability** | Sequential sessions with memory propagation. User defines: "plan → implement → review". Each step = persona + runtime. Memory flows between steps. |
-| 20 | **Enterprise profile overrides** | Admin policies layered on top of user profiles. Mandatory extensions, model restrictions, tool blocklists. |
+| 16 | **Policy engine** | Hooks checked pre-session and per-tool-call. Declarative YAML. Stacking: org > workspace > sandbox > session. |
+| 17 | **Spend cap builtin** | Track token/cost per session. Warn at threshold. Deny at cap. |
+| 18 | **Tool approval builtin** | Pause before shell/file-write. Auto-approve within bounds. |
+| 19 | **Policy on sandbox** | Sandbox carries policy. Automations constrained by policy (less privileged). |
 
-## Phase 5: Advanced
+## Then: Generalize + Portal Prep
+
+| # | What | Details |
+|---|------|---------|
+| 20 | **Codex adapter** | AGENTS.md materialization, `codex -q`, ReadConversation. |
+| 21 | **Kiro adapter** | `.kiro/steering/*.md`, ReadConversation. |
+| 22 | **Workspace as full I/O spec** | Inputs, outputs, connectors, constraints — not just source ref. |
+| 23 | **Session as portable record** | Full conversation transcript, serializable, forking support. |
+| 24 | **Store interface for portal** | HTTP adapter that satisfies same interfaces as SQLite. CLI switches backend by config. |
+
+## Future: Platform
 
 | # | What |
 |---|------|
-| 21 | Multi-profile (remote registries, org contexts) |
-| 22 | Temporal knowledge graph (Graphiti evaluation) |
-| 23 | Gateway capture mode (MITM proxy) |
-| 24 | Native capture mode for open harnesses (Pi SDK/RPC) |
-| 25 | A2A interop |
-
-## Session Assembly (detailed)
-
-```
-1. User runs: ok run -p code-reviewer -r pi -w my-project
-
-2. Resolution:
-   - Profile → load user's profile from DB (extensions, model prefs, Pi config)
-   - Persona → load code-reviewer from capabilities registry (system prompt, skills, native)
-   - Workspace → load my-project source ref
-
-3. Sandbox creation:
-   - Create temp dir (or worktree, container — provider-dependent)
-   - Link/copy workspace source into sandbox
-   - Materialize profile files:    .pi/extensions.json
-   - Materialize persona files:    .pi/SYSTEM.md, .pi/skills/*
-   - Materialize native overrides: persona.native.pi.files → sandbox
-
-4. Harness launch:
-   - Pi adapter builds CLI args from Config (model, tools, etc.)
-   - cmd.Dir = sandbox dir
-   - Start process, record session
-
-5. Post-session:
-   - Capture output → episodic store
-   - Clean up sandbox (or preserve for debugging)
-```
-
-## Profile Schema (draft)
-
-```yaml
-# Stored in DB, editable via ok profile set
-profile:
-  # Global preferences
-  default_model: claude-sonnet-4
-  default_runtime: pi
-
-  # Per-harness config
-  pi:
-    extensions:
-      - name: github-mcp
-        command: npx
-        args: ["-y", "@modelcontextprotocol/server-github"]
-        env:
-          GITHUB_TOKEN: "${GITHUB_TOKEN}"
-      - name: filesystem-mcp
-        command: npx
-        args: ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
-    model: claude-sonnet-4
-    tools_exclude: [computer_use]
-
-  codex:
-    model: gpt-4.1
-    approval_mode: suggest
-
-  kiro:
-    steering_files:
-      - ~/shared-steering/always-include.md
-```
+| 25 | Portal MVP (web UI, API, auth, workspace sync) |
+| 26 | Team workspaces + shared sandboxes |
+| 27 | Session sharing (view, co-drive, fork) |
+| 28 | Org memory graph (workspace → team → org propagation) |
+| 29 | Scheduled/event-driven sessions |
+| 30 | Cloud sandbox providers (Docker, OpenShell, Modal, Daytona) |
+| 31 | Multi-agent workflows (coordinator + delegation) |
+| 32 | Gateway capture (egress proxy, real-time structured capture) |
+| 33 | Marketplace (personas, skills, connectors) |
 
 ## Key Decisions
 
-- **Profile is per-user, local-first.** Multi-profile (org, team) comes later.
-- **Sandbox is mandatory.** Even the simplest "directory" provider creates a temp dir. No clobbering workspaces.
-- **Pi first.** Build deep for Pi, patterns will generalize to others.
-- **Memory connects sessions.** Without memory, sessions are isolated. Memory is the value multiplier.
-- **Workflows are sequential sessions with memory.** No separate DAG engine needed initially — user runs steps manually, memory carries over. Formal workflow engine is a convenience layer added when the pattern proves out.
-- **Extensions are profile, not persona.** Personas are portable across users. Extensions are personal tooling config.
+- **Entities (12):** Org, Group, Role, Gateway, Credential, Profile, Workspace, Sandbox, Session, Persona, Policy, Memory. See [entity-definitions.md](entity-definitions.md).
+- **Persona = agent configuration template.** Applied at sandbox materialization. Not a runtime constraint.
+- **Policy = enforcement.** What the agent can/cannot do. Stacking, cannot be loosened by lower levels.
+- **Sandbox = machine + account.** HOME redirected. User explicitly creates and enters.
+- **Workspace = namespace.** I/O declarations, memory scope, sandbox container.
+- **Memory = workspace-scoped.** Every session contributes. Propagation to group/org admin-controlled.
+- **Session = immutable audit record.** Sealed after completion.
+- **Profile = portable identity.** Automations run as the user, policy restricts.
+- **Gateway = enforcement point.** Credentials, network, capture, routing converge here.
+- **Role = permission bundle.** Platform roles + agent governance roles. Assigned scoped.
+- **Group = recursive.** Teams contain teams. Policy cascades down, memory propagates up.
+- **Credential = never in sandbox.** Sentinel/gateway pattern. Agent never sees real secrets.
+- **No separate service account entity for personal automations.** Policy-on-sandbox achieves restriction.
+- **CLI is a portal client.** Local SQLite is just the offline store. Same interfaces, different backend.

@@ -123,12 +123,16 @@ func newRunCmd(app *App) *cobra.Command {
 				}
 			}
 
-			provider := &execution.DirectorySandbox{}
-			sb, err := provider.Create(workspacePath)
+			provider := execution.NewLocalProvider()
+			wsName := workspaceFlag
+			if wsName == "" {
+				wsName = "default"
+			}
+			sb, err := provider.Create(wsName, "default")
 			if err != nil {
 				return fmt.Errorf("creating sandbox: %w", err)
 			}
-			defer provider.Destroy(sb)
+			// Sandbox is persistent — no auto-destroy
 
 			layout := execution.LayoutFor(harnessName)
 			if err := execution.Assemble(sb, layout, &prefs, &hcfg, harnessName, personaSpec); err != nil {
@@ -138,9 +142,9 @@ func newRunCmd(app *App) *cobra.Command {
 			// --- Harness config ---
 
 			cfg := execution.HarnessConfig{
-				Workspace: sb.Dir,
+				Workspace: workspacePath,
 				Args:      agentArgs,
-				Env:       make(map[string]string),
+				Env:       sb.Env(),
 				Model:     resolveModel(harnessName, &prefs, &hcfg),
 			}
 
@@ -195,7 +199,7 @@ func newRunCmd(app *App) *cobra.Command {
 			if personaLabel != "" {
 				label += ", persona=" + personaLabel
 			}
-			app.Log.Info("session started", "id", sess.ID()[:8], "agent", label, "sandbox", sb.Dir)
+			app.Log.Info("session started", "id", sess.ID()[:8], "agent", label, "sandbox", sb.Home)
 
 			sigCtx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 			defer cancel()

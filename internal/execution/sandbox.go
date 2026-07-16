@@ -3,76 +3,89 @@ package execution
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 )
 
-// Sandbox represents an active isolated execution environment.
-// Dir IS the workspace root — harness runs from it directly.
+// Sandbox is a persistent, named execution environment within a workspace.
+// The harness runs with HOME redirected here. Project files stay at their real path.
 type Sandbox struct {
-	Dir string
+	Home      string // ~/.ok/<workspace>/sandboxes/<name>/home/
+	Workspace string
+	Name      string
 }
 
-// WriteFile writes content to a path relative to the sandbox root.
+// WriteFile writes content relative to sandbox Home.
 func (s *Sandbox) WriteFile(relPath, content string) error {
-	absPath := filepath.Join(s.Dir, relPath)
+	absPath := filepath.Join(s.Home, relPath)
 	if err := os.MkdirAll(filepath.Dir(absPath), 0o755); err != nil {
 		return fmt.Errorf("mkdir %s: %w", filepath.Dir(absPath), err)
 	}
 	return os.WriteFile(absPath, []byte(content), 0o644)
 }
 
-// SandboxProvider creates and manages sandboxes.
-type SandboxProvider interface {
-	Create(workspaceSource string) (*Sandbox, error)
-	Destroy(s *Sandbox) error
+// Env returns environment overrides for the harness process.
+// ponytail: HOME redirect only for now. Upgrade: bwrap/seatbelt command wrapping.
+func (s *Sandbox) Env() map[string]string {
+	return map[string]string{
+		"HOME": s.Home,
+	}
 }
 
-// DirectorySandbox copies workspace source into a temp dir.
-// ponytail: naive copy. Upgrade path: git worktree, overlayfs, bwrap, container.
-type DirectorySandbox struct{}
+// SandboxProvider creates and manages sandboxes.
+// Implementations: local (mkdir), bwrap, seatbelt, docker, cloud (future).
+type SandboxProvider interface {
+	Create(workspace, name string) (*Sandbox, error)
+	Get(workspace, name string) (*Sandbox, error)
+	List(workspace string) ([]string, error)
+	Destroy(workspace, name string) error
+}
 
-func (p *DirectorySandbox) Create(workspaceSource string) (*Sandbox, error) {
-	dir, err := os.MkdirTemp("", "ok-sandbox-*")
-	if err != nil {
+// LocalProvider stores sandboxes under ~/.ok/<workspace>/sandboxes/<name>/home/.
+type LocalProvider struct {
+	root string
+}
+
+func NewLocalProvider() *LocalProvider {
+	home, _ := os.UserHomeDir()
+	return &LocalProvider{root: filepath.Join(home, ".ok")}
+}
+
+func (p *LocalProvider) homePath(workspace, name string) string {
+	return filepath.Join(p.root, workspace, "sandboxes", name, "home")
+}
+
+func (p *LocalProvider) Create(workspace, name string) (*Sandbox, error) {
+	home := p.homePath(workspace, name)
+	if err := os.MkdirAll(home, 0o755); err != nil {
 		return nil, fmt.Errorf("creating sandbox: %w", err)
 	}
+	return &Sandbox{Home: home, Workspace: workspace, Name: name}, nil
+}
 
-	if workspaceSource != "" {
-		if err := cloneDir(workspaceSource, dir); err != nil {
-			os.RemoveAll(dir)
-			return nil, fmt.Errorf("cloning workspace: %w", err)
+func (p *LocalProvider) Get(workspace, name string) (*Sandbox, error) {
+	home := p.homePath(workspace, name)
+	if _, err := os.Stat(home); err != nil {
+		return nil, fmt.Errorf("sandbox %s:%s not found", workspace, name)
+	}
+	return &Sandbox{Home: home, Workspace: workspace, Name: name}, nil
+}
+
+func (p *LocalProvider) List(workspace string) ([]string, error) {
+	dir := filepath.Join(p.root, workspace, "sandboxes")
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, nil
+	}
+	var names []string
+	for _, e := range entries {
+		if e.IsDir() {
+			names = append(names, e.Name())
 		}
 	}
-
-	return &Sandbox{Dir: dir}, nil
+	return names, nil
 }
 
-func (p *DirectorySandbox) Destroy(s *Sandbox) error {
-	if s == nil || s.Dir == "" {
-		return nil
-	}
-	return os.RemoveAll(s.Dir)
-}
-
-// cloneDir copies workspace source into dst using copy-on-write where available.
-// macOS (APFS): cp -Rc (instant clonefile)
-// Linux (btrfs/xfs): cp -a --reflink=auto (instant reflink, fallback to copy)
-// ponytail: shelling out to cp. Ceiling: non-POSIX systems. Upgrade: syscall-level clonefile.
-func cloneDir(src, dst string) error {
-	// Remove the temp dir — cp needs to create the target itself
-	os.RemoveAll(dst)
-
-	var cmd *exec.Cmd
-	if runtime.GOOS == "darwin" {
-		cmd = exec.Command("cp", "-Rc", src, dst)
-	} else {
-		cmd = exec.Command("cp", "-a", "--reflink=auto", src, dst)
-	}
-
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("cp: %s: %w", string(out), err)
-	}
-	return nil
+func (p *LocalProvider) Destroy(workspace, name string) error {
+	dir := filepath.Join(p.root, workspace, "sandboxes", name)
+	return os.RemoveAll(dir)
 }
