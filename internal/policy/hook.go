@@ -3,7 +3,7 @@ package policy
 import (
 	"context"
 
-	"github.com/convexideas/oktopus/internal/execution"
+	"github.com/convexideas/oktopus/internal/runtime"
 )
 
 // Decision represents the outcome of a policy evaluation.
@@ -23,14 +23,14 @@ type Result struct {
 
 // Hook is the policy interception interface.
 type Hook interface {
-	OnSessionStart(ctx context.Context, cfg execution.HarnessConfig) (Decision, string, error)
+	OnSessionStart(ctx context.Context, cfg runtime.HarnessConfig) (Decision, string, error)
 	OnSessionEnd(ctx context.Context, sessionID string, result Result) error
 }
 
 // Noop is a policy hook that allows everything.
 type Noop struct{}
 
-func (Noop) OnSessionStart(_ context.Context, _ execution.HarnessConfig) (Decision, string, error) {
+func (Noop) OnSessionStart(_ context.Context, _ runtime.HarnessConfig) (Decision, string, error) {
 	return Allow, "", nil
 }
 

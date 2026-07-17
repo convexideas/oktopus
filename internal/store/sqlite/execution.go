@@ -5,7 +5,7 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/convexideas/oktopus/internal/execution"
+	"github.com/convexideas/oktopus/internal/runtime"
 	"github.com/google/uuid"
 )
 
@@ -13,7 +13,7 @@ var wsCols = []string{"id", "name", "created_at"}
 var wsRefCols = []string{"workspace_id", "kind", "slot", "ref", "created_at"}
 var sessCols = []string{"id", "agent", "workspace", "title", "status", "created_at"}
 
-func (s *Store) CreateWorkspace(ctx context.Context, ws *execution.Workspace) error {
+func (s *Store) CreateWorkspace(ctx context.Context, ws *runtime.Workspace) error {
 	if ws.ID == "" {
 		ws.ID = uuid.New().String()
 	}
@@ -29,11 +29,11 @@ func (s *Store) CreateWorkspace(ctx context.Context, ws *execution.Workspace) er
 	return err
 }
 
-func (s *Store) GetWorkspaceByName(ctx context.Context, name string) (*execution.Workspace, error) {
+func (s *Store) GetWorkspaceByName(ctx context.Context, name string) (*runtime.Workspace, error) {
 	query, args, _ := sq.Select(wsCols...).From("workspaces").
 		Where(sq.Eq{"name": name}).ToSql()
 
-	var ws execution.Workspace
+	var ws runtime.Workspace
 	err := s.db.GetContext(ctx, &ws, query, args...)
 	if err != nil {
 		return nil, err
@@ -41,15 +41,15 @@ func (s *Store) GetWorkspaceByName(ctx context.Context, name string) (*execution
 	return &ws, nil
 }
 
-func (s *Store) ListWorkspaces(ctx context.Context) ([]execution.Workspace, error) {
+func (s *Store) ListWorkspaces(ctx context.Context) ([]runtime.Workspace, error) {
 	query, _, _ := sq.Select(wsCols...).From("workspaces").OrderBy("name").ToSql()
 
-	var workspaces []execution.Workspace
+	var workspaces []runtime.Workspace
 	err := s.db.SelectContext(ctx, &workspaces, query)
 	return workspaces, err
 }
 
-func (s *Store) AddWorkspaceRef(ctx context.Context, ref *execution.WorkspaceRef) error {
+func (s *Store) AddWorkspaceRef(ctx context.Context, ref *runtime.WorkspaceRef) error {
 	if ref.CreatedAt == "" {
 		ref.CreatedAt = time.Now().UTC().Format(time.RFC3339)
 	}
@@ -63,16 +63,16 @@ func (s *Store) AddWorkspaceRef(ctx context.Context, ref *execution.WorkspaceRef
 	return err
 }
 
-func (s *Store) ListWorkspaceRefs(ctx context.Context, workspaceID string) ([]execution.WorkspaceRef, error) {
+func (s *Store) ListWorkspaceRefs(ctx context.Context, workspaceID string) ([]runtime.WorkspaceRef, error) {
 	query, args, _ := sq.Select(wsRefCols...).From("workspace_refs").
 		Where(sq.Eq{"workspace_id": workspaceID}).ToSql()
 
-	var refs []execution.WorkspaceRef
+	var refs []runtime.WorkspaceRef
 	err := s.db.SelectContext(ctx, &refs, query, args...)
 	return refs, err
 }
 
-func (s *Store) CreateSession(ctx context.Context, sess *execution.Session) error {
+func (s *Store) CreateSession(ctx context.Context, sess *runtime.Session) error {
 	if sess.ID == "" {
 		sess.ID = uuid.New().String()
 	}
@@ -104,11 +104,11 @@ func (s *Store) CompleteSession(ctx context.Context, id, status string) error {
 	return err
 }
 
-func (s *Store) ListSessions(ctx context.Context, limit int) ([]execution.Session, error) {
+func (s *Store) ListSessions(ctx context.Context, limit int) ([]runtime.Session, error) {
 	query, args, _ := sq.Select(sessCols...).From("sessions").
 		OrderBy("created_at DESC").Limit(uint64(limit)).ToSql()
 
-	var sessions []execution.Session
+	var sessions []runtime.Session
 	err := s.db.SelectContext(ctx, &sessions, query, args...)
 	return sessions, err
 }

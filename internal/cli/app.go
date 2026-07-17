@@ -6,11 +6,11 @@ import (
 	"os"
 
 	"github.com/convexideas/oktopus/internal/config"
-	"github.com/convexideas/oktopus/internal/execution"
-	"github.com/convexideas/oktopus/internal/execution/claude"
-	"github.com/convexideas/oktopus/internal/execution/codex"
-	"github.com/convexideas/oktopus/internal/execution/kiro"
-	"github.com/convexideas/oktopus/internal/execution/pi"
+	"github.com/convexideas/oktopus/internal/runtime"
+	"github.com/convexideas/oktopus/internal/runtime/claude"
+	"github.com/convexideas/oktopus/internal/runtime/codex"
+	"github.com/convexideas/oktopus/internal/runtime/kiro"
+	"github.com/convexideas/oktopus/internal/runtime/pi"
 	"github.com/convexideas/oktopus/internal/store/sqlite"
 )
 
@@ -18,7 +18,7 @@ import (
 type App struct {
 	Config  *config.Config
 	Store   *sqlite.Store
-	Harness *execution.HarnessRegistry
+	Harness *runtime.HarnessRegistry
 	Log     *slog.Logger
 }
 
@@ -34,7 +34,7 @@ func NewApp() (*App, error) {
 		return nil, fmt.Errorf("opening store: %w", err)
 	}
 
-	harnesses := execution.NewHarnessRegistry()
+	harnesses := runtime.NewHarnessRegistry()
 	harnesses.Register(pi.NewAdapter())
 	harnesses.Register(codex.NewAdapter())
 	harnesses.Register(kiro.NewAdapter())

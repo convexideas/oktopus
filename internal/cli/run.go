@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/convexideas/oktopus/internal/execution"
+	"github.com/convexideas/oktopus/internal/runtime"
 	"github.com/convexideas/oktopus/internal/identity"
 	"github.com/convexideas/oktopus/internal/memory"
 	"github.com/convexideas/oktopus/internal/policy"
@@ -123,7 +123,7 @@ func newRunCmd(app *App) *cobra.Command {
 				}
 			}
 
-			provider := execution.NewLocalProvider()
+			provider := runtime.NewLocalProvider()
 			wsName := workspaceFlag
 			if wsName == "" {
 				wsName = "default"
@@ -134,14 +134,14 @@ func newRunCmd(app *App) *cobra.Command {
 			}
 			// Sandbox is persistent — no auto-destroy
 
-			layout := execution.LayoutFor(harnessName)
-			if err := execution.Assemble(sb, layout, &prefs, &hcfg, harnessName, personaSpec); err != nil {
+			layout := runtime.LayoutFor(harnessName)
+			if err := runtime.Assemble(sb, layout, &prefs, &hcfg, harnessName, personaSpec); err != nil {
 				return fmt.Errorf("assembling sandbox: %w", err)
 			}
 
 			// --- Harness config ---
 
-			cfg := execution.HarnessConfig{
+			cfg := runtime.HarnessConfig{
 				Workspace: workspacePath,
 				Args:      agentArgs,
 				Env:       sb.Env(),
@@ -187,7 +187,7 @@ func newRunCmd(app *App) *cobra.Command {
 				return fmt.Errorf("starting %s: %w", harnessName, err)
 			}
 
-			dbSess := &execution.Session{
+			dbSess := &runtime.Session{
 				ID:        sess.ID(),
 				Agent:     harnessName,
 				Workspace: workspacePath,
@@ -306,7 +306,7 @@ Session output:
 
 Summary:`
 
-	cfg := execution.HarnessConfig{
+	cfg := runtime.HarnessConfig{
 		Workspace: os.TempDir(),
 		Task:      prompt,
 		Internal:  true,

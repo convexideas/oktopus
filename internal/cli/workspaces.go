@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"text/tabwriter"
 
-	"github.com/convexideas/oktopus/internal/execution"
+	"github.com/convexideas/oktopus/internal/runtime"
 	"github.com/spf13/cobra"
 )
 
@@ -39,14 +39,14 @@ func newWorkspaceCreateCmd(app *App) *cobra.Command {
 				return fmt.Errorf("workspace %q already exists", name)
 			}
 
-			ws := &execution.Workspace{Name: name}
+			ws := &runtime.Workspace{Name: name}
 			if err := app.Store.CreateWorkspace(ctx, ws); err != nil {
 				return err
 			}
 
 			if sourceFlag != "" {
 				abs, _ := filepath.Abs(sourceFlag)
-				ref := &execution.WorkspaceRef{
+				ref := &runtime.WorkspaceRef{
 					WorkspaceID: ws.ID,
 					Kind:        "source",
 					Ref:         abs,

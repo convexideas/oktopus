@@ -1,4 +1,4 @@
-package execution
+package runtime
 
 import (
 	"bytes"
@@ -16,7 +16,8 @@ import (
 type ProcessAdapter struct {
 	name       string
 	binaryName string
-	ArgsBuilder func(HarnessConfig) []string
+	ArgsBuilder        func(HarnessConfig) []string
+	ConversationReader func(sandboxHome string) (*Conversation, error)
 }
 
 // NewProcessAdapter creates a basic adapter. ArgsBuilder can be set for custom flag translation.
@@ -122,4 +123,12 @@ func (s *processSession) Output() string {
 		return ""
 	}
 	return s.outputBuf.String()
+}
+
+// ReadConversation uses the harness-specific reader if set, otherwise returns nil.
+func (a *ProcessAdapter) ReadConversation(sandboxHome string) (*Conversation, error) {
+	if a.ConversationReader != nil {
+		return a.ConversationReader(sandboxHome)
+	}
+	return nil, nil
 }
