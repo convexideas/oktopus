@@ -7,9 +7,8 @@ import (
 )
 
 // Sandbox is a persistent, named execution environment within a workspace.
-// The harness runs with HOME redirected here. Project files stay at their real path.
 type Sandbox struct {
-	Home      string // ~/.ok/<workspace>/sandboxes/<name>/home/
+	Home      string
 	Workspace string
 	Name      string
 }
@@ -24,54 +23,61 @@ func (s *Sandbox) WriteFile(relPath, content string) error {
 }
 
 // Env returns environment overrides for the harness process.
-// ponytail: HOME redirect only for now. Upgrade: bwrap/seatbelt command wrapping.
 func (s *Sandbox) Env() map[string]string {
 	return map[string]string{
 		"HOME": s.Home,
 	}
 }
 
-// SandboxProvider creates and manages sandboxes.
-// Implementations: local (mkdir), bwrap, seatbelt, docker, cloud (future).
-type SandboxProvider interface {
-	Create(workspace, name string) (*Sandbox, error)
+// SandboxDriver creates and manages sandboxes for a specific provider+type combination.
+type SandboxDriver interface {
+	Name() string
+	Create(workspace, name string, config map[string]any) (*Sandbox, error)
 	Get(workspace, name string) (*Sandbox, error)
 	List(workspace string) ([]string, error)
 	Destroy(workspace, name string) error
 }
 
-// LocalProvider stores sandboxes under ~/.ok/<workspace>/sandboxes/<name>/home/.
-type LocalProvider struct {
-	root string
+// ResolveSandboxDriver returns the appropriate driver for the given sandbox config.
+// Resolution: explicit config > workspace default > "local" provider + "process" type.
+func ResolveSandboxDriver(cfg SandboxConfig) SandboxDriver {
+	// ponytail: only local/process exists today. Add docker, modal, etc. here.
+	switch cfg.Provider + "/" + cfg.Type {
+	default:
+		return &LocalProcess{}
+	}
 }
 
-func NewLocalProvider() *LocalProvider {
+// LocalProcess is the simplest sandbox driver: mkdir + HOME redirect.
+// Provider: local. Type: process. No real isolation.
+type LocalProcess struct{}
+
+func (d *LocalProcess) Name() string { return "local/process" }
+
+func (d *LocalProcess) homePath(workspace, name string) string {
 	home, _ := os.UserHomeDir()
-	return &LocalProvider{root: filepath.Join(home, ".ok")}
+	return filepath.Join(home, ".ok", workspace, "sandboxes", name, "home")
 }
 
-func (p *LocalProvider) homePath(workspace, name string) string {
-	return filepath.Join(p.root, workspace, "sandboxes", name, "home")
-}
-
-func (p *LocalProvider) Create(workspace, name string) (*Sandbox, error) {
-	home := p.homePath(workspace, name)
+func (d *LocalProcess) Create(workspace, name string, config map[string]any) (*Sandbox, error) {
+	home := d.homePath(workspace, name)
 	if err := os.MkdirAll(home, 0o755); err != nil {
 		return nil, fmt.Errorf("creating sandbox: %w", err)
 	}
 	return &Sandbox{Home: home, Workspace: workspace, Name: name}, nil
 }
 
-func (p *LocalProvider) Get(workspace, name string) (*Sandbox, error) {
-	home := p.homePath(workspace, name)
+func (d *LocalProcess) Get(workspace, name string) (*Sandbox, error) {
+	home := d.homePath(workspace, name)
 	if _, err := os.Stat(home); err != nil {
 		return nil, fmt.Errorf("sandbox %s:%s not found", workspace, name)
 	}
 	return &Sandbox{Home: home, Workspace: workspace, Name: name}, nil
 }
 
-func (p *LocalProvider) List(workspace string) ([]string, error) {
-	dir := filepath.Join(p.root, workspace, "sandboxes")
+func (d *LocalProcess) List(workspace string) ([]string, error) {
+	home, _ := os.UserHomeDir()
+	dir := filepath.Join(home, ".ok", workspace, "sandboxes")
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, nil
@@ -85,7 +91,8 @@ func (p *LocalProvider) List(workspace string) ([]string, error) {
 	return names, nil
 }
 
-func (p *LocalProvider) Destroy(workspace, name string) error {
-	dir := filepath.Join(p.root, workspace, "sandboxes", name)
+func (d *LocalProcess) Destroy(workspace, name string) error {
+	home, _ := os.UserHomeDir()
+	dir := filepath.Join(home, ".ok", workspace, "sandboxes", name)
 	return os.RemoveAll(dir)
 }

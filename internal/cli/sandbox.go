@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -27,19 +28,38 @@ func newSandboxCmd(app *App) *cobra.Command {
 
 func newSandboxCreateCmd(app *App) *cobra.Command {
 	var personaFlag string
+	var providerFlag string
+	var typeFlag string
 
 	cmd := &cobra.Command{
 		Use:   "create <workspace:name>",
 		Short: "Create a named sandbox",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := cmd.Context()
 			ws, name, err := parseWorkspaceSandbox(args[0])
 			if err != nil {
 				return err
 			}
 
-			provider := runtime.NewLocalProvider()
-			sb, err := provider.Create(ws, name)
+			// Resolve sandbox config: CLI flags > workspace default > global default
+			var sandboxCfg runtime.SandboxConfig
+			if wsEntity, err := app.Store.GetWorkspaceByName(ctx, ws); err == nil {
+				var wsCfg runtime.WorkspaceConfig
+				if wsEntity.ConfigJSON != "" {
+					json.Unmarshal([]byte(wsEntity.ConfigJSON), &wsCfg)
+				}
+				sandboxCfg = wsCfg.Sandbox
+			}
+			if providerFlag != "" {
+				sandboxCfg.Provider = providerFlag
+			}
+			if typeFlag != "" {
+				sandboxCfg.Type = typeFlag
+			}
+
+			driver := runtime.ResolveSandboxDriver(sandboxCfg)
+			sb, err := driver.Create(ws, name, sandboxCfg.Config)
 			if err != nil {
 				return err
 			}
@@ -47,12 +67,14 @@ func newSandboxCreateCmd(app *App) *cobra.Command {
 			// TODO: materialize persona + profile into sandbox
 			_ = personaFlag
 
-			cmd.Printf("created sandbox %s:%s (%s)\n", ws, name, sb.Home)
+			cmd.Printf("created sandbox %s:%s (%s, %s)\n", ws, name, driver.Name(), sb.Home)
 			return nil
 		},
 	}
 
 	cmd.Flags().StringVarP(&personaFlag, "persona", "p", "", "Persona to configure the sandbox with")
+	cmd.Flags().StringVar(&providerFlag, "provider", "", "Override sandbox provider (local, modal, fly)")
+	cmd.Flags().StringVar(&typeFlag, "type", "", "Override sandbox type (process, container, vm)")
 	return cmd
 }
 
@@ -67,7 +89,7 @@ func newSandboxExecCmd(app *App) *cobra.Command {
 				return err
 			}
 
-			provider := runtime.NewLocalProvider()
+			provider := runtime.ResolveSandboxDriver(runtime.SandboxConfig{})
 			sb, err := provider.Get(ws, name)
 			if err != nil {
 				return fmt.Errorf("sandbox %s:%s not found (create it with: ok sandbox create %s)", ws, name, args[0])
@@ -134,11 +156,11 @@ func newSandboxListCmd(app *App) *cobra.Command {
 					return nil
 				}
 
-				provider := runtime.NewLocalProvider()
+				driver := runtime.ResolveSandboxDriver(runtime.SandboxConfig{})
 				w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 2, 2, ' ', 0)
 				fmt.Fprintln(w, "WORKSPACE\tSANDBOX")
 				for _, workspace := range workspaces {
-					names, _ := provider.List(workspace.Name)
+					names, _ := driver.List(workspace.Name)
 					for _, name := range names {
 						fmt.Fprintf(w, "%s\t%s\n", workspace.Name, name)
 					}
@@ -147,8 +169,8 @@ func newSandboxListCmd(app *App) *cobra.Command {
 				return nil
 			}
 
-			provider := runtime.NewLocalProvider()
-			names, _ := provider.List(ws)
+			driver := runtime.ResolveSandboxDriver(runtime.SandboxConfig{})
+			names, _ := driver.List(ws)
 			if len(names) == 0 {
 				cmd.Printf("no sandboxes for workspace %q\n", ws)
 				return nil

@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 )
 
-var wsCols = []string{"id", "name", "created_at"}
+var wsCols = []string{"id", "name", "config_json", "created_at"}
 var wsRefCols = []string{"workspace_id", "kind", "slot", "ref", "created_at"}
-var sessCols = []string{"id", "agent", "workspace", "title", "status", "created_at"}
+var sessCols = []string{"id", "agent", "workspace", "sandbox", "title", "status", "created_at"}
 
 func (s *Store) CreateWorkspace(ctx context.Context, ws *runtime.Workspace) error {
 	if ws.ID == "" {
@@ -20,9 +20,12 @@ func (s *Store) CreateWorkspace(ctx context.Context, ws *runtime.Workspace) erro
 	if ws.CreatedAt == "" {
 		ws.CreatedAt = time.Now().UTC().Format(time.RFC3339)
 	}
+	if ws.ConfigJSON == "" {
+		ws.ConfigJSON = "{}"
+	}
 
 	query, args, _ := sq.Insert("workspaces").SetMap(map[string]any{
-		"id": ws.ID, "name": ws.Name, "created_at": ws.CreatedAt,
+		"id": ws.ID, "name": ws.Name, "config_json": ws.ConfigJSON, "created_at": ws.CreatedAt,
 	}).ToSql()
 
 	_, err := s.db.ExecContext(ctx, query, args...)
@@ -86,7 +89,7 @@ func (s *Store) CreateSession(ctx context.Context, sess *runtime.Session) error 
 
 	query, args, _ := sq.Insert("sessions").SetMap(map[string]any{
 		"id": sess.ID, "agent": sess.Agent, "workspace": sess.Workspace,
-		"title": sess.Title, "status": sess.Status,
+		"sandbox": sess.Sandbox, "title": sess.Title, "status": sess.Status,
 		"created_at": sess.CreatedAt, "updated_at": now,
 	}).ToSql()
 

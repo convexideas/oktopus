@@ -11,11 +11,11 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TEXT NOT NULL
 );
 
--- Workspaces: immutable shared definitions of what a coding environment looks like.
--- Change by forking, not mutating.
+-- Workspaces: declarative scope of work. Portal-native, synced locally.
 CREATE TABLE IF NOT EXISTS workspaces (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
+  config_json TEXT NOT NULL DEFAULT '{}',
   created_at TEXT NOT NULL
 );
 
@@ -60,13 +60,12 @@ CREATE TABLE IF NOT EXISTS sandbox_instances (
 );
 
 -- Sessions: append-only task capsules. Creation = start.
--- Bare sessions: sandbox_instance_id is optional (empty string for bare sessions).
--- agent + workspace allow sessions without the full sandbox chain.
 CREATE TABLE IF NOT EXISTS sessions (
   id TEXT PRIMARY KEY,
   sandbox_instance_id TEXT NOT NULL DEFAULT '',
   agent TEXT NOT NULL DEFAULT '',
   workspace TEXT NOT NULL DEFAULT '',
+  sandbox TEXT NOT NULL DEFAULT '',
   title TEXT NOT NULL,
   status TEXT NOT NULL,
   created_by TEXT,

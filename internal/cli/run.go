@@ -123,12 +123,12 @@ func newRunCmd(app *App) *cobra.Command {
 				}
 			}
 
-			provider := runtime.NewLocalProvider()
+			provider := runtime.ResolveSandboxDriver(runtime.SandboxConfig{})
 			wsName := workspaceFlag
 			if wsName == "" {
 				wsName = "default"
 			}
-			sb, err := provider.Create(wsName, "default")
+			sb, err := provider.Create(wsName, "default", nil)
 			if err != nil {
 				return fmt.Errorf("creating sandbox: %w", err)
 			}
