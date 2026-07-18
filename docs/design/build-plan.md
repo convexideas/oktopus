@@ -89,6 +89,26 @@ internal/
 | 32 | Gateway capture (egress proxy, real-time structured capture) |
 | 33 | Marketplace (personas, skills, connectors) |
 
+## CLI Design Notes (revisit post-gateway)
+
+Current `ok profile` conflates auth + config + extensions. Compare with GitHub CLI:
+- `gh auth` = identity (login, switch, token)
+- `gh config` = preferences (flat key-value)
+- Extensions are a first-class top-level concept
+
+Potential split when auth story gets complex (multiple remotes, OAuth):
+```
+ok auth login <portal-url>       # authenticate with platform
+ok auth status                   # who am I, which remotes
+ok auth switch                   # switch profiles
+
+ok config set/show               # flat preferences
+ok extensions add/list/remove    # MCP servers as first-class
+```
+
+Also: `ok sessions` should scope to workspace:sandbox by default (not global).
+Hold until gateway work is done and we refine the full command surface.
+
 ## Key Decisions
 
 - **Entities (12):** Org, Group, Role, Gateway, Credential, Profile, Workspace, Sandbox, Session, Persona, Policy, Memory. See [entity-definitions.md](entity-definitions.md).
