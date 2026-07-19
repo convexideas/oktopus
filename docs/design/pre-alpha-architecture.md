@@ -294,17 +294,177 @@ The gateway never blocks a session from starting. It degrades gracefully.
 
 ---
 
+## Patterns adopted from reference projects
+
+| Pattern | Source | Our adaptation |
+|---------|--------|----------------|
+| Reverse proxy gateway | OpenShell inference.local | Same — agent talks to local endpoint |
+| Credential never in sandbox | OpenShell phantom tokens | Same — gateway injects real creds |
+| Policy stacking (server > agent > session) | Omnigent | org > workspace > sandbox > session |
+| Agent defined in YAML | Omnigent | Persona YAML (already have this) |
+| Server + host separation | Omnigent | Portal (server) + CLI (host/runner) |
+| File-based config + DB cache | git | workspace.yaml + DB mirror |
+| Two-tier enforcement | OpenShell (mandatory) | Advisory (process) + Mandatory (container/VM) |
+| IO stream + network capture | Omnigent (PTY + L7 proxy) | stdout/JSON + gateway reverse proxy |
+| Self-improving learning loop | Hermes Agent | Pattern detector + knowledge crystallizer, scoped to org |
+| Procedural memory | Hermes Agent | Knowledge items with confidence, temporal decay, supersession |
+| Static rules + LLM judge | CrabTrap | Policy eval + memory extraction (details below) |
+| Policy from observation | CrabTrap | `ok policy suggest` — generate rules from captured traffic |
+| Replay eval | CrabTrap | `ok policy test` — dry-run policy against historical sessions |
+
+---
+
+## CrabTrap-Inspired: Two-Tier Evaluation
+
+CrabTrap's core insight: 97% of decisions match static rules (fast,
+deterministic, microseconds). 3% go to an LLM judge (slow, nuanced). This
+pattern applies to three areas of our system.
+
+### Application 1: Policy Evaluation
+
+```
+Static rules (fast, checked first):
+  allow:
+    - file writes in workspace source directory
+    - known-safe MCP tools
+    - API calls to configured provider
+  deny:
+    - file writes outside workspace
+    - network calls to unapproved hosts
+  ask:
+    - shell commands (always pause for approval)
+
+LLM judge (long tail — only when no static rule matches):
+  Input: the action, the task context, the workspace policy
+  Output: ALLOW | DENY | ASK + reason
+  Example: "Agent wants to run `curl | bash` — is this consistent
+            with the stated task?"
+```
+
+### Application 2: Memory Extraction
+
+Not every session produces novel knowledge. Most are routine.
+
+```
+Static rules (skip extraction):
+  - Session output < 50 chars → trivial, skip
+  - Session flagged internal (summarization) → skip
+  - Session identical to recent session → skip
+
+Static rules (update only):
+  - Content matches existing knowledge item → bump confidence
+  - Same tools/patterns used → no new extraction needed
+
+LLM extraction (only for novel content):
+  - New concepts not in existing knowledge → full extraction
+  - Contradiction with existing facts → resolve + supersede
+  - Cross-session pattern threshold reached → crystallize
+```
+
+This saves 80%+ of extraction LLM cost. Most sessions confirm what we
+already know rather than teaching something new.
+
+### Application 3: Gateway Traffic Policy
+
+```
+Static rules:
+  - Requests to configured provider (api.anthropic.com) → allow
+  - Requests to workspace-approved hosts (github.com) → allow
+  - Requests to localhost/internal → allow
+  - Everything else → deny (or judge)
+
+LLM judge (when enabled):
+  - "The agent is calling an unfamiliar API endpoint. Given the
+    current task and workspace policy, should this be allowed?"
+  - Returns: ALLOW/DENY + reason + suggested static rule for next time
+```
+
+### Policy Builder: Generate from Observation
+
+Instead of writing policy by hand, observe real traffic and generate:
+
+```
+Phase 1: Run N sessions with gateway in observe mode (log, don't block)
+Phase 2: Analyze captured traffic + tool calls
+Phase 3: Generate suggested policy:
+
+  ok policy suggest
+  "Based on 12 sessions in workspace 'payments':
+   Your agent typically:
+     - Calls api.anthropic.com (inference)
+     - Calls api.github.com (PR creation, code search)
+     - Runs shell: go build, go test, git commit
+     - Writes files in: internal/, cmd/, docs/
+
+   Suggested policy:
+     network_allow: [api.anthropic.com, api.github.com]
+     shell_allow_patterns: [go *, git *]
+     file_write_allow: [internal/**, cmd/**, docs/**]
+     deny_all_else: true
+
+   Apply? [y/n/edit]"
+```
+
+### Replay Eval: Test Before Deploy
+
+Before a policy goes live, replay it against historical sessions:
+
+```
+ok policy test --replay 20 --policy ./strict-policy.yaml
+
+  Results against last 20 sessions:
+  ┌──────────┬────────┬─────────┬───────────────────────────────┐
+  │ Session  │ Action │ Verdict │ Detail                        │
+  ├──────────┼────────┼─────────┼───────────────────────────────┤
+  │ abc123   │ shell  │ BLOCKED │ "rm -rf node_modules" at 14:32│
+  │ def456   │ net    │ BLOCKED │ curl to pastebin.com at 09:15 │
+  │ (18 more)│ ...    │ OK      │ no change                     │
+  └──────────┴────────┴─────────┴───────────────────────────────┘
+
+  2 of 20 sessions would have been affected.
+  Review blocked actions? [y/n]
+```
+
+This prevents policy misconfiguration from breaking real workflows.
+
+---
+
+## Revised Build Sequence (Full Roadmap)
+
+Incorporating all patterns from the landscape:
+
+| # | What | Source | Phase |
+|---|------|--------|-------|
+| 1 | Store interfaces | (architectural hygiene) | Pre-alpha |
+| 2 | Session state machine | Omnigent server model | Pre-alpha |
+| 3 | Workspace YAML + resolver | git / Hermes file-first | Pre-alpha |
+| 4 | Gateway graceful degradation | (fix) | Pre-alpha |
+| 5 | knowledge_items table | Hermes procedural memory | Alpha |
+| 6 | LLM extraction + `ok memory extract` | Hermes pattern detector | Alpha |
+| 7 | Auto-trigger post-session | Hermes automatic loop | Alpha |
+| 8 | Knowledge injection pre-session | Hermes skill loading | Alpha |
+| 9 | Static policy rules | OpenShell policy YAML | Alpha |
+| 10 | Policy from observation (`ok policy suggest`) | CrabTrap policy builder | Post-alpha |
+| 11 | LLM-as-judge for long tail | CrabTrap | Post-alpha |
+| 12 | Replay eval (`ok policy test`) | CrabTrap eval system | Post-alpha |
+| 13 | Propagation (workspace → team → org) | Our unique addition | Portal phase |
+| 14 | Confidence decay + supersession | Hermes skill evolution | Portal phase |
+
+---
+
 ## Our moat (what none of them do)
 
-| Capability | OpenClaw | Hermes | Omnigent | OpenShell | Us |
-|-----------|----------|--------|----------|-----------|-----|
-| Session capture | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Memory that improves | ❌ | ✅ (per-agent) | ❌ | ❌ | ✅ (per-org) |
-| Knowledge graph | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Org propagation | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Multi-harness | ✅ (skills) | ❌ (own model) | ✅ | ✅ (any in sandbox) | ✅ |
-| Team collaboration | ❌ | ❌ | ✅ (real-time) | ❌ | ✅ (portal) |
-| Credential isolation | ❌ | ❌ | ❌ | ✅ | ✅ |
-| Network policy | ❌ | ❌ | ✅ (L7 proxy) | ✅ (mandatory) | ✅ (advisory + mandatory) |
+| Capability | OpenClaw | Hermes | Omnigent | OpenShell | CrabTrap | Us |
+|-----------|----------|--------|----------|-----------|----------|-----|
+| Session capture | ✅ | ✅ | ✅ | ✅ | ✅ (audit) | ✅ |
+| Memory that improves | ❌ | ✅ (per-agent) | ❌ | ❌ | ❌ | ✅ (per-org) |
+| Knowledge graph | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Org propagation | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Multi-harness | ✅ (skills) | ❌ (own model) | ✅ | ✅ (any) | N/A | ✅ |
+| Team collaboration | ❌ | ❌ | ✅ (real-time) | ❌ | ❌ | ✅ (portal) |
+| Credential isolation | ❌ | ❌ | ❌ | ✅ | ❌ | ✅ |
+| Network policy | ❌ | ❌ | ✅ (L7 proxy) | ✅ (mandatory) | ✅ (LLM judge) | ✅ (advisory + mandatory) |
+| Policy from traffic | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ (planned) |
+| Policy replay/eval | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ (planned) |
 
 Hermes learns per-agent. We learn per-org. That's the gap.
