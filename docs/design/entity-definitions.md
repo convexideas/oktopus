@@ -396,3 +396,21 @@ For sharing to work:
 - Policy still applies per-participant (different spend caps in same session)
 
 For local-first phase: everything implicitly personal. Model doesn't prevent sharing from being added.
+
+## Gateway Enforcement Model
+
+The gateway operates in two tiers depending on sandbox type:
+
+**Tier 1 — Advisory (local/process sandbox):**
+- Gateway sets ANTHROPIC_BASE_URL / OPENAI_BASE_URL on the harness process
+- Works for all harnesses that respect base URL env vars
+- If harness ignores env vars, gateway is bypassed — IO stream capture is the fallback
+- No OS-level enforcement — it's the host's network
+
+**Tier 2 — Mandatory (container/VM sandbox):**
+- All egress blocked except through gateway (iptables/pf rules in the container)
+- Only possible when we control the network namespace
+- Harness cannot bypass — even if it ignores env vars, traffic is blocked
+
+Users who need full capture and policy enforcement should use container or VM sandbox types.
+Local/process sandboxes are convenience-first — capture is best-effort.
