@@ -64,7 +64,7 @@ func NewApp() (*App, error) {
 		Memory:       store,
 		Profiles:     store,
 		Capabilities: store,
-		Portal:       portal.NewLocalClient(cfg.HomeDir),
+		Portal:       portal.NewLocalClient(cfg.HomeDir, "default"),
 		Harness:      harnesses,
 		Log:          log,
 		closer:       func() { store.Close() },

@@ -10,43 +10,48 @@ import (
 )
 
 // LocalClient is a mock portal that stores auth state on disk.
-// Accepts any credentials and simulates a portal connection.
-// Used for UX flow testing until a real portal exists.
+// All portals share one file (portals.json) keyed by portal name.
 type LocalClient struct {
-	stateDir string
+	filePath   string
+	portalName string
 }
 
-// NewLocalClient creates a portal client that persists state to the given directory.
-func NewLocalClient(stateDir string) *LocalClient {
-	return &LocalClient{stateDir: stateDir}
+// NewLocalClient creates a portal client for a named portal slot.
+func NewLocalClient(stateDir, portalName string) *LocalClient {
+	return &LocalClient{
+		filePath:   filepath.Join(stateDir, "portals.json"),
+		portalName: portalName,
+	}
 }
 
-func (c *LocalClient) statePath() string {
-	return filepath.Join(c.stateDir, "portal-state.json")
+func (c *LocalClient) loadAll() (map[string]*AuthState, error) {
+	data, err := os.ReadFile(c.filePath)
+	if err != nil {
+		return make(map[string]*AuthState), nil
+	}
+	var states map[string]*AuthState
+	if err := json.Unmarshal(data, &states); err != nil {
+		return make(map[string]*AuthState), nil
+	}
+	return states, nil
+}
+
+func (c *LocalClient) saveAll(states map[string]*AuthState) error {
+	os.MkdirAll(filepath.Dir(c.filePath), 0o755)
+	data, _ := json.MarshalIndent(states, "", "  ")
+	return os.WriteFile(c.filePath, data, 0o600)
 }
 
 func (c *LocalClient) loadState() (*AuthState, error) {
-	data, err := os.ReadFile(c.statePath())
-	if err != nil {
+	states, _ := c.loadAll()
+	state, ok := states[c.portalName]
+	if !ok || state == nil || !state.Authenticated {
 		return nil, ErrOffline
-	}
-	var state AuthState
-	if err := json.Unmarshal(data, &state); err != nil {
-		return nil, ErrOffline
-	}
-	if !state.Authenticated {
-		return nil, ErrUnauthorized
 	}
 	if !state.ExpiresAt.IsZero() && time.Now().After(state.ExpiresAt) {
 		return nil, ErrUnauthorized
 	}
-	return &state, nil
-}
-
-func (c *LocalClient) saveState(state *AuthState) error {
-	os.MkdirAll(c.stateDir, 0o755)
-	data, _ := json.MarshalIndent(state, "", "  ")
-	return os.WriteFile(c.statePath(), data, 0o600)
+	return state, nil
 }
 
 func (c *LocalClient) Login(ctx context.Context, serverURL, email, password string) (*AuthState, error) {
@@ -54,18 +59,19 @@ func (c *LocalClient) Login(ctx context.Context, serverURL, email, password stri
 		return nil, fmt.Errorf("email and password required")
 	}
 
-	// Mock: accept any credentials, simulate successful auth
 	state := &AuthState{
 		Authenticated: true,
 		UserID:        "user-" + email,
 		Email:         email,
-		OrgID:         "org-default",
-		OrgName:       "Local Mock Org",
+		OrgID:         "org-" + c.portalName,
+		OrgName:       c.portalName,
 		ServerURL:     serverURL,
 		ExpiresAt:     time.Now().Add(24 * time.Hour),
 	}
 
-	if err := c.saveState(state); err != nil {
+	states, _ := c.loadAll()
+	states[c.portalName] = state
+	if err := c.saveAll(states); err != nil {
 		return nil, fmt.Errorf("saving auth state: %w", err)
 	}
 	return state, nil
@@ -79,22 +85,29 @@ func (c *LocalClient) LoginWithToken(ctx context.Context, serverURL, token strin
 	state := &AuthState{
 		Authenticated: true,
 		UserID:        "user-token",
-		Email:         "token-auth@local",
-		OrgID:         "org-default",
-		OrgName:       "Local Mock Org",
+		Email:         "token-auth@" + c.portalName,
+		OrgID:         "org-" + c.portalName,
+		OrgName:       c.portalName,
 		ServerURL:     serverURL,
 		ExpiresAt:     time.Now().Add(7 * 24 * time.Hour),
 	}
 
-	if err := c.saveState(state); err != nil {
+	states, _ := c.loadAll()
+	states[c.portalName] = state
+	if err := c.saveAll(states); err != nil {
 		return nil, fmt.Errorf("saving auth state: %w", err)
 	}
 	return state, nil
 }
 
 func (c *LocalClient) Logout(ctx context.Context) error {
-	os.Remove(c.statePath())
-	return nil
+	states, _ := c.loadAll()
+	delete(states, c.portalName)
+	if len(states) == 0 {
+		os.Remove(c.filePath)
+		return nil
+	}
+	return c.saveAll(states)
 }
 
 func (c *LocalClient) WhoAmI(ctx context.Context) (*AuthState, error) {
@@ -105,7 +118,6 @@ func (c *LocalClient) Status(ctx context.Context) (*SyncStatus, error) {
 	if _, err := c.loadState(); err != nil {
 		return nil, err
 	}
-	// Mock: return zeros — nothing to sync in mock mode
 	return &SyncStatus{
 		SessionsPending: 0,
 		MemoryPending:   0,
@@ -118,7 +130,6 @@ func (c *LocalClient) Push(ctx context.Context) error {
 	if _, err := c.loadState(); err != nil {
 		return err
 	}
-	// Mock: no-op, pretend success
 	return nil
 }
 
@@ -126,6 +137,5 @@ func (c *LocalClient) Pull(ctx context.Context) error {
 	if _, err := c.loadState(); err != nil {
 		return err
 	}
-	// Mock: no-op, pretend success
 	return nil
 }

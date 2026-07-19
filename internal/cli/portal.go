@@ -6,16 +6,14 @@ import (
 	"os"
 	"strings"
 
-	"github.com/convexideas/oktopus/internal/credential"
 	"github.com/convexideas/oktopus/internal/portal"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
 
-const portalCredentialKey = "portal-token"
-
 func newLoginCmd(app *App) *cobra.Command {
 	var tokenFlag string
+	var portalFlag string
 
 	cmd := &cobra.Command{
 		Use:   "login [server-url]",
@@ -31,12 +29,19 @@ func newLoginCmd(app *App) *cobra.Command {
 				serverURL = args[0]
 			}
 
+			// Resolve portal client for the given name
+			portalName := portalFlag
+			if portalName == "" {
+				portalName = "default"
+			}
+			client := portal.NewLocalClient(app.Config.HomeDir, portalName)
+
 			var auth *portal.AuthState
 			var err error
 
 			if tokenFlag != "" {
 				// Token-based login (for CI, automation)
-				auth, err = app.Portal.LoginWithToken(ctx, serverURL, tokenFlag)
+				auth, err = client.LoginWithToken(ctx, serverURL, tokenFlag)
 			} else {
 				// Interactive login
 				cmd.Print("? Email: ")
@@ -46,7 +51,7 @@ func newLoginCmd(app *App) *cobra.Command {
 				pass, _ := term.ReadPassword(int(os.Stdin.Fd()))
 				cmd.Println()
 
-				auth, err = app.Portal.Login(ctx, serverURL, email, string(pass))
+				auth, err = client.Login(ctx, serverURL, email, string(pass))
 			}
 
 			if err != nil {
@@ -57,33 +62,43 @@ func newLoginCmd(app *App) *cobra.Command {
 			}
 
 			// Store token in keychain for session persistence
-			// ponytail: actual token comes from portal response. For now, store server URL as marker.
-			credential.Store(portalCredentialKey, serverURL)
+			// ponytail: actual token would go in keychain. For mock, state is in portal JSON.
 
 			cmd.Printf("✓ Logged in as %s (%s)\n", auth.Email, auth.OrgName)
+			cmd.Printf("  portal: %s\n", portalName)
 			cmd.Printf("  server: %s\n", auth.ServerURL)
 			return nil
 		},
 	}
 
 	cmd.Flags().StringVar(&tokenFlag, "token", "", "API token (for CI/automation)")
+	cmd.Flags().StringVar(&portalFlag, "portal", "", "Portal name (from config, default: 'default')")
 	return cmd
 }
 
 func newLogoutCmd(app *App) *cobra.Command {
-	return &cobra.Command{
+	var portalFlag string
+
+	cmd := &cobra.Command{
 		Use:   "logout",
 		Short: "Disconnect from the remote portal",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			portalName := portalFlag
+			if portalName == "" {
+				portalName = "default"
+			}
+			client := portal.NewLocalClient(app.Config.HomeDir, portalName)
 			ctx := cmd.Context()
-			if err := app.Portal.Logout(ctx); err != nil && err != portal.ErrOffline {
+			if err := client.Logout(ctx); err != nil && err != portal.ErrOffline {
 				return err
 			}
-			credential.Delete(portalCredentialKey)
-			cmd.Println("✓ Logged out")
+			cmd.Printf("✓ Logged out from portal %q\n", portalName)
 			return nil
 		},
 	}
+
+	cmd.Flags().StringVar(&portalFlag, "portal", "", "Portal name (default: 'default')")
+	return cmd
 }
 
 func newWhoAmICmd(app *App) *cobra.Command {
