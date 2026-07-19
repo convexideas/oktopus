@@ -1,9 +1,16 @@
-// Package gateway provides an HTTP forward proxy that sits between
-// agent sandboxes and LLM API providers.
+// Package gateway provides a local reverse proxy that agents talk to
+// instead of real LLM API endpoints. The agent is configured with
+// ANTHROPIC_BASE_URL=http://localhost:<port> (or similar) so all
+// inference traffic flows through us.
 //
-// Phase 1: plain HTTP capture. CONNECT tunnels pass through opaquely.
-// Phase 2: TLS interception (CA cert).
-// Phase 3: credential injection, inference routing, policy enforcement.
+// The gateway:
+//   - Captures full request/response (structured messages, tool calls)
+//   - Meters token usage and cost
+//   - Injects real credentials (agent never sees them)
+//   - Routes to the configured upstream provider
+//
+// No MITM, no CA certs, no trust store manipulation.
+// Inspired by OpenShell's inference.local pattern.
 package gateway
 
 import (
@@ -13,23 +20,32 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-// Proxy is an HTTP forward proxy that captures LLM API traffic.
+// ProviderConfig describes how to reach an upstream LLM provider.
+type ProviderConfig struct {
+	Name    string // "anthropic", "openai", "ollama", "custom"
+	BaseURL string // "https://api.anthropic.com", "https://api.openai.com", "http://localhost:11434"
+	APIKey  string // real credential — injected by gateway, never exposed to agent
+}
+
+// Proxy is a local reverse proxy that captures and meters LLM API traffic.
 type Proxy struct {
-	Meter *Meter
-	Addr  string // populated after Start: "127.0.0.1:<port>"
+	Meter    *Meter
+	Provider ProviderConfig
+	Addr     string // populated after Start: "127.0.0.1:<port>"
 
 	server   *http.Server
 	listener net.Listener
 }
 
-// New creates a proxy wired to the given meter.
-func New(meter *Meter) *Proxy {
-	return &Proxy{Meter: meter}
+// New creates a proxy that routes to the given provider.
+func New(meter *Meter, provider ProviderConfig) *Proxy {
+	return &Proxy{Meter: meter, Provider: provider}
 }
 
 // Start begins listening on a random local port.
@@ -52,48 +68,14 @@ func (p *Proxy) Stop() error {
 	return p.server.Shutdown(ctx)
 }
 
-// ServeHTTP routes requests: CONNECT → tunnel, plain HTTP → capture.
+// BaseURL returns the URL agents should use as their API base.
+func (p *Proxy) BaseURL() string {
+	return "http://" + p.Addr
+}
+
+// ServeHTTP handles all requests from the agent.
+// Strips agent-supplied auth, injects real credentials, forwards to upstream.
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodConnect {
-		p.handleConnect(w, r)
-		return
-	}
-	p.handleHTTP(w, r)
-}
-
-// handleConnect tunnels HTTPS without interception (phase 1 — passthrough).
-func (p *Proxy) handleConnect(w http.ResponseWriter, r *http.Request) {
-	dest, err := net.DialTimeout("tcp", r.Host, 10*time.Second)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadGateway)
-		return
-	}
-
-	hijacker, ok := w.(http.Hijacker)
-	if !ok {
-		http.Error(w, "hijack not supported", http.StatusInternalServerError)
-		dest.Close()
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	client, _, err := hijacker.Hijack()
-	if err != nil {
-		dest.Close()
-		return
-	}
-
-	go transfer(dest, client)
-	go transfer(client, dest)
-}
-
-func transfer(dst, src net.Conn) {
-	io.Copy(dst, src)
-	dst.Close()
-}
-
-// handleHTTP proxies plain HTTP with full body capture.
-func (p *Proxy) handleHTTP(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 
 	// Read request body
@@ -103,9 +85,28 @@ func (p *Proxy) handleHTTP(w http.ResponseWriter, r *http.Request) {
 		r.Body.Close()
 	}
 
+	// Build upstream URL
+	upstreamURL := strings.TrimRight(p.Provider.BaseURL, "/") + "/" + strings.TrimLeft(r.URL.Path, "/")
+	if r.URL.RawQuery != "" {
+		upstreamURL += "?" + r.URL.RawQuery
+	}
+
 	// Forward request
-	outReq, _ := http.NewRequestWithContext(r.Context(), r.Method, r.URL.String(), bytes.NewReader(reqBody))
-	outReq.Header = r.Header.Clone()
+	outReq, _ := http.NewRequestWithContext(r.Context(), r.Method, upstreamURL, bytes.NewReader(reqBody))
+
+	// Copy headers, strip agent auth
+	for k, vv := range r.Header {
+		lower := strings.ToLower(k)
+		if lower == "authorization" || lower == "x-api-key" {
+			continue
+		}
+		for _, v := range vv {
+			outReq.Header.Add(k, v)
+		}
+	}
+
+	// Inject real credentials
+	p.injectAuth(outReq)
 
 	resp, err := http.DefaultTransport.RoundTrip(outReq)
 	if err != nil {
@@ -114,10 +115,10 @@ func (p *Proxy) handleHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	// Read response body
+	// Read response
 	respBody, _ := io.ReadAll(resp.Body)
 
-	// Write back to client
+	// Write back to agent
 	for k, vv := range resp.Header {
 		for _, v := range vv {
 			w.Header().Add(k, v)
@@ -126,28 +127,36 @@ func (p *Proxy) handleHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(resp.StatusCode)
 	w.Write(respBody)
 
-	// Capture if LLM API call
-	provider := detectProvider(r.Host)
-	if provider == "" {
-		return
-	}
-
-	tokensIn, tokensOut := extractUsage(provider, respBody)
+	// Capture + meter
+	tokensIn, tokensOut := extractUsage(p.Provider.Name, respBody)
 	model := extractModel(reqBody)
 
 	cap := Capture{
 		ID:        uuid.New().String(),
 		SessionID: p.Meter.sessionID,
 		Timestamp: time.Now().UTC(),
-		Provider:  provider,
+		Provider:  p.Provider.Name,
 		Model:     model,
 		Endpoint:  r.URL.Path,
 		TokensIn:  tokensIn,
 		TokensOut: tokensOut,
-		Cost:      estimateCost(provider, model, tokensIn, tokensOut),
+		Cost:      estimateCost(p.Provider.Name, model, tokensIn, tokensOut),
 		Duration:  time.Since(start),
 		Request:   reqBody,
 		Response:  respBody,
 	}
 	p.Meter.Record(cap)
+}
+
+// injectAuth adds the appropriate auth header for the upstream provider.
+func (p *Proxy) injectAuth(r *http.Request) {
+	if p.Provider.APIKey == "" {
+		return
+	}
+	switch p.Provider.Name {
+	case "anthropic":
+		r.Header.Set("x-api-key", p.Provider.APIKey)
+	default:
+		r.Header.Set("Authorization", "Bearer "+p.Provider.APIKey)
+	}
 }

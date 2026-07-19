@@ -4,77 +4,98 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 )
 
-func TestProxyCapturesLLMTraffic(t *testing.T) {
-	// Mock Anthropic API
+func TestProxyCapturesAndForwards(t *testing.T) {
+	// Mock upstream (pretend Anthropic)
+	var gotAuth string
 	mock := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = r.Header.Get("x-api-key")
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"usage":{"input_tokens":100,"output_tokens":50},"content":[{"text":"hello"}]}`))
 	}))
 	defer mock.Close()
 
-	// Start gateway
+	// Gateway pointing at mock as upstream
 	meter := NewMeter("test-session")
-	gw := New(meter)
+	provider := ProviderConfig{
+		Name:    "anthropic",
+		BaseURL: mock.URL,
+		APIKey:  "sk-real-secret-key",
+	}
+	gw := New(meter, provider)
 	if err := gw.Start(); err != nil {
 		t.Fatal(err)
 	}
 	defer gw.Stop()
 
-	// Send request through proxy to mock (pretend it's anthropic)
-	// We rewrite detectProvider to match the mock host for this test by using plain HTTP
-	client := &http.Client{
-		Transport: &http.Transport{
-			Proxy: func(r *http.Request) (*url.URL, error) {
-				return url.Parse("http://" + gw.Addr)
-			},
-		},
-	}
-
+	// Agent calls our gateway (as if ANTHROPIC_BASE_URL=http://localhost:port)
 	body := strings.NewReader(`{"model":"claude-sonnet-4-20250514","messages":[{"role":"user","content":"hi"}]}`)
-	resp, err := client.Post(mock.URL+"/v1/messages", "application/json", body)
+	req, _ := http.NewRequest("POST", gw.BaseURL()+"/v1/messages", body)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("x-api-key", "ok-gateway") // sentinel — should be stripped
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
 	io.ReadAll(resp.Body)
 
-	// Verify capture — mock is localhost so will be detected as "ollama"
+	// Verify credential injection
+	if gotAuth != "sk-real-secret-key" {
+		t.Errorf("expected real key injected, got %q", gotAuth)
+	}
+
+	// Verify capture
 	if meter.Count() != 1 {
 		t.Fatalf("expected 1 capture, got %d", meter.Count())
 	}
 
 	tokensIn, tokensOut, _ := meter.Totals()
-	// localhost is detected as "ollama" which doesn't parse anthropic format
-	// But model extraction should still work
+	if tokensIn != 100 || tokensOut != 50 {
+		t.Errorf("expected 100/50 tokens, got %d/%d", tokensIn, tokensOut)
+	}
+
 	caps := meter.Flush()
 	if caps[0].Model != "claude-sonnet-4-20250514" {
 		t.Errorf("expected model claude-sonnet-4-20250514, got %q", caps[0].Model)
 	}
-	_ = tokensIn
-	_ = tokensOut
+	if caps[0].Provider != "anthropic" {
+		t.Errorf("expected provider anthropic, got %q", caps[0].Provider)
+	}
 }
 
-func TestDetectProvider(t *testing.T) {
-	tests := []struct {
-		host string
-		want string
-	}{
-		{"api.anthropic.com", "anthropic"},
-		{"api.openai.com", "openai"},
-		{"localhost:11434", "ollama"},
-		{"127.0.0.1:8080", "ollama"},
-		{"unknown.example.com", ""},
+func TestProxyStripsAgentAuth(t *testing.T) {
+	// Verify agent-supplied auth is stripped, not forwarded
+	var gotAuthHeader, gotAPIKeyHeader string
+	mock := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAuthHeader = r.Header.Get("Authorization")
+		gotAPIKeyHeader = r.Header.Get("x-api-key")
+		w.Write([]byte(`{}`))
+	}))
+	defer mock.Close()
+
+	meter := NewMeter("test")
+	gw := New(meter, ProviderConfig{Name: "openai", BaseURL: mock.URL, APIKey: "sk-real"})
+	gw.Start()
+	defer gw.Stop()
+
+	req, _ := http.NewRequest("POST", gw.BaseURL()+"/v1/chat/completions", strings.NewReader(`{"model":"gpt-4o"}`))
+	req.Header.Set("Authorization", "Bearer agent-sentinel-should-be-stripped")
+	req.Header.Set("x-api-key", "also-should-be-stripped")
+
+	http.DefaultClient.Do(req)
+
+	// For openai provider, should get Bearer with real key
+	if gotAuthHeader != "Bearer sk-real" {
+		t.Errorf("expected 'Bearer sk-real', got %q", gotAuthHeader)
 	}
-	for _, tt := range tests {
-		got := detectProvider(tt.host)
-		if got != tt.want {
-			t.Errorf("detectProvider(%q) = %q, want %q", tt.host, got, tt.want)
-		}
+	// x-api-key should be stripped (not forwarded for openai)
+	if gotAPIKeyHeader != "" {
+		t.Errorf("expected empty x-api-key, got %q", gotAPIKeyHeader)
 	}
 }
 

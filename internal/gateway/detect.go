@@ -5,20 +5,6 @@ import (
 	"strings"
 )
 
-// detectProvider identifies LLM API providers by host.
-func detectProvider(host string) string {
-	switch {
-	case strings.Contains(host, "anthropic.com"):
-		return "anthropic"
-	case strings.Contains(host, "openai.com"):
-		return "openai"
-	case strings.HasPrefix(host, "localhost"), strings.HasPrefix(host, "127.0.0.1"):
-		return "ollama"
-	default:
-		return ""
-	}
-}
-
 // extractModel pulls the model name from a request body.
 func extractModel(body []byte) string {
 	var req struct {
@@ -48,12 +34,16 @@ func extractUsage(provider string, body []byte) (tokensIn, tokensOut int) {
 	case "openai":
 		return resp.Usage.PromptTokens, resp.Usage.CompletionTokens
 	default:
-		return 0, 0
+		// Try both formats
+		if resp.Usage.InputTokens > 0 {
+			return resp.Usage.InputTokens, resp.Usage.OutputTokens
+		}
+		return resp.Usage.PromptTokens, resp.Usage.CompletionTokens
 	}
 }
 
 // estimateCost returns a rough USD cost estimate.
-// ponytail: hardcoded pricing. Replace with configurable pricing table when policy needs it.
+// ponytail: hardcoded pricing. Replace with configurable pricing table.
 func estimateCost(provider, model string, tokensIn, tokensOut int) float64 {
 	var inRate, outRate float64 // per million tokens
 	switch {

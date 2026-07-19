@@ -179,15 +179,32 @@ func newRunCmd(app *App) *cobra.Command {
 
 			sessionID := uuid.New().String()
 			meter := gateway.NewMeter(sessionID)
-			gw := gateway.New(meter)
+
+			// Resolve provider from workspace config (future: workspace.config.provider)
+			// ponytail: for now, detect from environment. Phase 3 reads from workspace config.
+			gwProvider := gateway.ProviderConfig{Name: "anthropic", BaseURL: "https://api.anthropic.com"}
+			if key := os.Getenv("ANTHROPIC_API_KEY"); key != "" {
+				gwProvider.APIKey = key
+			}
+			if key := os.Getenv("OPENAI_API_KEY"); key != "" {
+				gwProvider = gateway.ProviderConfig{Name: "openai", BaseURL: "https://api.openai.com", APIKey: key}
+			}
+
+			gw := gateway.New(meter, gwProvider)
 			if err := gw.Start(); err != nil {
 				app.Log.Warn("gateway failed to start, proceeding without capture", "err", err)
 				gw = nil
 			} else {
 				defer gw.Stop()
-				cfg.Env["HTTP_PROXY"] = "http://" + gw.Addr
-				cfg.Env["HTTPS_PROXY"] = "http://" + gw.Addr
-				cfg.ProxyAddr = gw.Addr
+				// Point harness at our gateway instead of real API
+				switch gwProvider.Name {
+				case "anthropic":
+					cfg.Env["ANTHROPIC_BASE_URL"] = gw.BaseURL()
+					cfg.Env["ANTHROPIC_API_KEY"] = "ok-gateway" // sentinel, stripped by gateway
+				case "openai":
+					cfg.Env["OPENAI_BASE_URL"] = gw.BaseURL()
+					cfg.Env["OPENAI_API_KEY"] = "ok-gateway"
+				}
 			}
 
 			// --- Policy check ---
