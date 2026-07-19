@@ -44,7 +44,7 @@ func newSandboxCreateCmd(app *App) *cobra.Command {
 
 			// Resolve sandbox config: CLI flags > workspace default > global default
 			var sandboxCfg runtime.SandboxConfig
-			if wsEntity, err := app.Store.GetWorkspaceByName(ctx, ws); err == nil {
+			if wsEntity, err := app.Workspaces.GetWorkspaceByName(ctx, ws); err == nil {
 				var wsCfg runtime.WorkspaceConfig
 				if wsEntity.ConfigJSON != "" {
 					json.Unmarshal([]byte(wsEntity.ConfigJSON), &wsCfg)
@@ -98,9 +98,9 @@ func newSandboxExecCmd(app *App) *cobra.Command {
 			// Resolve workspace source for cwd
 			ctx := cmd.Context()
 			cwd, _ := os.Getwd()
-			wsEntity, err := app.Store.GetWorkspaceByName(ctx, ws)
+			wsEntity, err := app.Workspaces.GetWorkspaceByName(ctx, ws)
 			if err == nil {
-				refs, _ := app.Store.ListWorkspaceRefs(ctx, wsEntity.ID)
+				refs, _ := app.Workspaces.ListWorkspaceRefs(ctx, wsEntity.ID)
 				for _, r := range refs {
 					if r.Kind == "source" {
 						cwd = r.Ref
@@ -150,7 +150,7 @@ func newSandboxListCmd(app *App) *cobra.Command {
 				ws = args[0]
 			} else {
 				// List all workspaces' sandboxes
-				workspaces, _ := app.Store.ListWorkspaces(cmd.Context())
+				workspaces, _ := app.Workspaces.ListWorkspaces(cmd.Context())
 				if len(workspaces) == 0 {
 					cmd.Println("no workspaces defined")
 					return nil

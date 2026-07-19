@@ -30,7 +30,7 @@ func newMemoryListCmd(app *App) *cobra.Command {
 
 			var wsID string
 			if workspaceFlag != "" {
-				ws, err := app.Store.GetWorkspaceByName(ctx, workspaceFlag)
+				ws, err := app.Workspaces.GetWorkspaceByName(ctx, workspaceFlag)
 				if err != nil {
 					return fmt.Errorf("workspace %q not found", workspaceFlag)
 				}
@@ -46,7 +46,7 @@ func newMemoryListCmd(app *App) *cobra.Command {
 			}
 
 			if wsID != "" {
-				eps, err := app.Store.ListEpisodesByWorkspace(ctx, wsID, limitFlag)
+				eps, err := app.Memory.ListEpisodesByWorkspace(ctx, wsID, limitFlag)
 				if err != nil {
 					return err
 				}
@@ -56,7 +56,7 @@ func newMemoryListCmd(app *App) *cobra.Command {
 					}{ep.ID, ep.SessionID, ep.Source, ep.Content, ep.CapturedAt})
 				}
 			} else {
-				eps, err := app.Store.ListRecentEpisodes(ctx, limitFlag)
+				eps, err := app.Memory.ListRecentEpisodes(ctx, limitFlag)
 				if err != nil {
 					return err
 				}

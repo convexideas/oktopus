@@ -21,7 +21,7 @@ func newSessionsCmd(app *App) *cobra.Command {
 			// Upgrade: filter by workspace:sandbox when store supports it.
 			_ = allFlag
 
-			sessions, err := app.Store.ListSessions(cmd.Context(), 20)
+			sessions, err := app.Sessions.ListSessions(cmd.Context(), 20)
 			if err != nil {
 				return err
 			}

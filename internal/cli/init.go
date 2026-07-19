@@ -50,7 +50,7 @@ Run with --force to overwrite existing settings.`,
 				//    Future: interactive mode with checkboxes, or --only settings|sessions.
 				prefs, hcfg, err := h.Settings()
 				if err == nil && prefs != nil {
-					profile, _ := app.Store.GetProfile(ctx, localUserID)
+					profile, _ := app.Profiles.GetProfile(ctx, localUserID)
 					if profile == nil {
 						profile = &identity.Profile{UserID: localUserID}
 					}
@@ -65,7 +65,7 @@ Run with --force to overwrite existing settings.`,
 						profile.HarnessConfig = *hcfg
 					}
 
-					if err := app.Store.UpsertProfile(ctx, profile); err != nil {
+					if err := app.Profiles.UpsertProfile(ctx, profile); err != nil {
 						cmd.PrintErrf("  warning: could not save profile: %v\n", err)
 					} else {
 						cmd.PrintErrf("  ✓ settings imported into profile\n")
@@ -100,7 +100,7 @@ Run with --force to overwrite existing settings.`,
 						Content:     ep.Content,
 						CapturedAt:  ep.Timestamp,
 					}
-					if err := app.Store.SaveEpisode(ctx, memEp); err != nil {
+					if err := app.Memory.SaveEpisode(ctx, memEp); err != nil {
 						app.Log.Debug("SaveEpisode failed", "error", err)
 					} else {
 						imported++

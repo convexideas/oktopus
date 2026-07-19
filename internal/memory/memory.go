@@ -17,8 +17,8 @@ type Episode struct {
 
 // Store persists and retrieves episodes.
 type Store interface {
-	Save(ctx context.Context, ep *Episode) error
-	ListByWorkspace(ctx context.Context, workspaceID string, limit int) ([]Episode, error)
+	SaveEpisode(ctx context.Context, ep *Episode) error
+	ListEpisodesByWorkspace(ctx context.Context, workspaceID string, limit int) ([]Episode, error)
 	ListSummariesByWorkspace(ctx context.Context, workspaceID string, limit int) ([]Episode, error)
-	ListRecent(ctx context.Context, limit int) ([]Episode, error)
+	ListRecentEpisodes(ctx context.Context, limit int) ([]Episode, error)
 }

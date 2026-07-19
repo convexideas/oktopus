@@ -34,13 +34,13 @@ func newWorkspaceCreateCmd(app *App) *cobra.Command {
 			ctx := cmd.Context()
 			name := args[0]
 
-			_, err := app.Store.GetWorkspaceByName(ctx, name)
+			_, err := app.Workspaces.GetWorkspaceByName(ctx, name)
 			if err == nil {
 				return fmt.Errorf("workspace %q already exists", name)
 			}
 
 			ws := &runtime.Workspace{Name: name}
-			if err := app.Store.CreateWorkspace(ctx, ws); err != nil {
+			if err := app.Workspaces.CreateWorkspace(ctx, ws); err != nil {
 				return err
 			}
 
@@ -51,7 +51,7 @@ func newWorkspaceCreateCmd(app *App) *cobra.Command {
 					Kind:        "source",
 					Ref:         abs,
 				}
-				if err := app.Store.AddWorkspaceRef(ctx, ref); err != nil {
+				if err := app.Workspaces.AddWorkspaceRef(ctx, ref); err != nil {
 					return err
 				}
 			}
@@ -70,7 +70,7 @@ func newWorkspaceListCmd(app *App) *cobra.Command {
 		Short:   "List all workspaces",
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			workspaces, err := app.Store.ListWorkspaces(cmd.Context())
+			workspaces, err := app.Workspaces.ListWorkspaces(cmd.Context())
 			if err != nil {
 				return err
 			}
@@ -98,7 +98,7 @@ func newWorkspaceShowCmd(app *App) *cobra.Command {
 			ctx := cmd.Context()
 			name := args[0]
 
-			ws, err := app.Store.GetWorkspaceByName(ctx, name)
+			ws, err := app.Workspaces.GetWorkspaceByName(ctx, name)
 			if err != nil {
 				return fmt.Errorf("workspace %q not found", name)
 			}
@@ -107,7 +107,7 @@ func newWorkspaceShowCmd(app *App) *cobra.Command {
 			cmd.Printf("id:      %s\n", ws.ID)
 			cmd.Printf("created: %s\n", ws.CreatedAt)
 
-			refs, err := app.Store.ListWorkspaceRefs(ctx, ws.ID)
+			refs, err := app.Workspaces.ListWorkspaceRefs(ctx, ws.ID)
 			if err != nil {
 				return err
 			}

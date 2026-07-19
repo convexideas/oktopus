@@ -35,9 +35,9 @@ func newCapabilitiesListCmd(app *App) *cobra.Command {
 			var caps []registry.Capability
 			var err error
 			if kindFlag != "" {
-				caps, err = app.Store.ListCapabilitiesByKind(cmd.Context(), kindFlag)
+				caps, err = app.Capabilities.ListCapabilitiesByKind(cmd.Context(), kindFlag)
 			} else {
-				caps, err = app.Store.ListCapabilities(cmd.Context())
+				caps, err = app.Capabilities.ListCapabilities(cmd.Context())
 			}
 			if err != nil {
 				return err
@@ -82,7 +82,7 @@ func newCapabilitiesAddCmd(app *App) *cobra.Command {
 				return fmt.Errorf("encoding manifest: %w", err)
 			}
 
-			_, err = app.Store.FindCapability(ctx, meta.Kind, meta.Name, meta.Version)
+			_, err = app.Capabilities.FindCapability(ctx, meta.Kind, meta.Name, meta.Version)
 			if err == nil {
 				return fmt.Errorf("%s/%s@%s already registered", meta.Kind, meta.Name, meta.Version)
 			}
@@ -103,7 +103,7 @@ func newCapabilitiesAddCmd(app *App) *cobra.Command {
 				ManifestPath: absPath,
 			}
 
-			if err := app.Store.Register(ctx, cap); err != nil {
+			if err := app.Capabilities.Register(ctx, cap); err != nil {
 				return err
 			}
 

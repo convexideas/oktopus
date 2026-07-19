@@ -4,6 +4,12 @@ package identity
 
 import "context"
 
+// Store persists and retrieves user profiles.
+type Store interface {
+	GetProfile(ctx context.Context, userID string) (*Profile, error)
+	UpsertProfile(ctx context.Context, profile *Profile) error
+}
+
 // Profile is the user's runtime identity.
 type Profile struct {
 	ID        string `db:"id"`
@@ -67,8 +73,4 @@ type KiroConfig struct {
 	Extensions    []Extension `json:"extensions,omitempty"` // Kiro-only extensions
 }
 
-// Store is the repository interface for profiles.
-type Store interface {
-	Get(ctx context.Context, userID string) (*Profile, error)
-	Upsert(ctx context.Context, p *Profile) error
-}
+

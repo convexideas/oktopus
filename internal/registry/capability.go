@@ -41,8 +41,8 @@ type NativeConfig struct {
 // Store is the repository interface for capabilities.
 type Store interface {
 	Register(ctx context.Context, c *Capability) error
-	Find(ctx context.Context, kind, name, version string) (*Capability, error)
-	FindByName(ctx context.Context, kind, name string) (*Capability, error)
-	ListByKind(ctx context.Context, kind string) ([]Capability, error)
-	ListAll(ctx context.Context) ([]Capability, error)
+	FindCapability(ctx context.Context, kind, name, version string) (*Capability, error)
+	FindCapabilityByName(ctx context.Context, kind, name string) (*Capability, error)
+	ListCapabilitiesByKind(ctx context.Context, kind string) ([]Capability, error)
+	ListCapabilities(ctx context.Context) ([]Capability, error)
 }

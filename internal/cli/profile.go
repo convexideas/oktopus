@@ -28,7 +28,7 @@ func newProfileShowCmd(app *App) *cobra.Command {
 		Use:   "show",
 		Short: "Display current profile",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			profile, err := app.Store.GetProfile(cmd.Context(), localUserID)
+			profile, err := app.Profiles.GetProfile(cmd.Context(), localUserID)
 			if err != nil {
 				cmd.Println("no profile configured yet (use 'ok profile set' to create one)")
 				return nil
@@ -92,7 +92,7 @@ Harness config (harness-specific):
 			ctx := cmd.Context()
 			key, value := args[0], args[1]
 
-			profile, err := app.Store.GetProfile(ctx, localUserID)
+			profile, err := app.Profiles.GetProfile(ctx, localUserID)
 			if err != nil {
 				profile = &identity.Profile{UserID: localUserID}
 			}
@@ -147,7 +147,7 @@ Harness config (harness-specific):
 				return fmt.Errorf("unknown key %q", key)
 			}
 
-			if err := app.Store.UpsertProfile(ctx, profile); err != nil {
+			if err := app.Profiles.UpsertProfile(ctx, profile); err != nil {
 				return err
 			}
 

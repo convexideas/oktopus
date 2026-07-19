@@ -51,7 +51,7 @@ func newRunCmd(app *App) *cobra.Command {
 			}
 
 			// Profile
-			profile, _ := app.Store.GetProfile(ctx, localUserID)
+			profile, _ := app.Profiles.GetProfile(ctx, localUserID)
 			var prefs identity.Preferences
 			var hcfg identity.HarnessConfig
 			if profile != nil {
@@ -66,7 +66,7 @@ func newRunCmd(app *App) *cobra.Command {
 			var personaSpec *registry.PersonaSpec
 			var personaLabel string
 			if personaFlag != "" {
-				cap, err := app.Store.FindCapabilityByName(ctx, "persona", personaFlag)
+				cap, err := app.Capabilities.FindCapabilityByName(ctx, "persona", personaFlag)
 				if err != nil {
 					return fmt.Errorf("persona %q not registered", personaFlag)
 				}
@@ -96,11 +96,11 @@ func newRunCmd(app *App) *cobra.Command {
 			// Workspace
 			workspacePath, _ := os.Getwd()
 			if workspaceFlag != "" {
-				ws, err := app.Store.GetWorkspaceByName(ctx, workspaceFlag)
+				ws, err := app.Workspaces.GetWorkspaceByName(ctx, workspaceFlag)
 				if err != nil {
 					return fmt.Errorf("workspace %q not found", workspaceFlag)
 				}
-				refs, _ := app.Store.ListWorkspaceRefs(ctx, ws.ID)
+				refs, _ := app.Workspaces.ListWorkspaceRefs(ctx, ws.ID)
 				for _, r := range refs {
 					if r.Kind == "source" {
 						workspacePath = r.Ref
@@ -113,8 +113,8 @@ func newRunCmd(app *App) *cobra.Command {
 
 			// Memory injection: load recent summaries for context
 			if workspaceFlag != "" {
-				if ws, err := app.Store.GetWorkspaceByName(ctx, workspaceFlag); err == nil {
-					summaries, _ := app.Store.ListSummariesByWorkspace(ctx, ws.ID, 5)
+				if ws, err := app.Workspaces.GetWorkspaceByName(ctx, workspaceFlag); err == nil {
+					summaries, _ := app.Memory.ListSummariesByWorkspace(ctx, ws.ID, 5)
 					if len(summaries) > 0 && personaSpec != nil {
 						var memCtx string
 						for i := len(summaries) - 1; i >= 0; i-- {
@@ -231,7 +231,7 @@ func newRunCmd(app *App) *cobra.Command {
 				Sandbox:   sb.Name,
 				Title:     harnessName,
 			}
-			app.Store.CreateSession(ctx, dbSess)
+			app.Sessions.CreateSession(ctx, dbSess)
 
 			label := harnessName
 			if personaLabel != "" {
@@ -252,7 +252,7 @@ func newRunCmd(app *App) *cobra.Command {
 				status = "failed"
 			}
 
-			app.Store.CompleteSession(ctx, sess.ID(), status)
+			app.Sessions.CompleteSession(ctx, sess.ID(), status)
 			hook.OnSessionEnd(ctx, sess.ID(), policy.Result{ExitCode: sess.ExitCode(), Status: status})
 
 			// Gateway: flush captures + report metering
@@ -266,7 +266,7 @@ func newRunCmd(app *App) *cobra.Command {
 						"tokens_out", tokensOut,
 						"cost_usd", fmt.Sprintf("%.4f", cost),
 					)
-					app.Store.SaveCaptures(ctx, captures)
+					app.Captures.SaveCaptures(ctx, captures)
 				}
 			}
 
@@ -274,7 +274,7 @@ func newRunCmd(app *App) *cobra.Command {
 			if output := sess.Output(); output != "" {
 				wsID := ""
 				if workspaceFlag != "" {
-					if ws, err := app.Store.GetWorkspaceByName(ctx, workspaceFlag); err == nil {
+					if ws, err := app.Workspaces.GetWorkspaceByName(ctx, workspaceFlag); err == nil {
 						wsID = ws.ID
 					}
 				}
@@ -285,7 +285,7 @@ func newRunCmd(app *App) *cobra.Command {
 					Source:      "stdout",
 					Content:     output,
 				}
-				app.Store.SaveEpisode(ctx, ep)
+				app.Memory.SaveEpisode(ctx, ep)
 
 				// Generate and save summary
 				if wsID != "" {
@@ -297,7 +297,7 @@ func newRunCmd(app *App) *cobra.Command {
 							Source:      "summary",
 							Content:     summary,
 						}
-						app.Store.SaveEpisode(ctx, sumEp)
+						app.Memory.SaveEpisode(ctx, sumEp)
 					}
 				}
 			}
@@ -367,7 +367,7 @@ Summary:`
 	}
 
 	// Use configured model
-	profile, _ := app.Store.GetProfile(ctx, localUserID)
+	profile, _ := app.Profiles.GetProfile(ctx, localUserID)
 	if profile != nil && profile.Preferences.DefaultModel != "" {
 		cfg.Model = profile.Preferences.DefaultModel
 	}
