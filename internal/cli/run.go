@@ -126,7 +126,7 @@ func newRunCmd(app *App) *cobra.Command {
 				}
 			}
 
-			provider := runtime.ResolveSandboxDriver(runtime.SandboxConfig{})
+			provider, sandboxWarning := runtime.ResolveSandboxDriver(runtime.SandboxConfig{})
 			wsName := workspaceFlag
 			if wsName == "" {
 				wsName = "default"
@@ -134,6 +134,9 @@ func newRunCmd(app *App) *cobra.Command {
 			sb, err := provider.Create(wsName, "default", nil)
 			if err != nil {
 				return fmt.Errorf("creating sandbox: %w", err)
+			}
+			if sandboxWarning != "" {
+				app.Log.Warn("sandbox degraded — no API capture", "reason", sandboxWarning)
 			}
 			// Sandbox is persistent — no auto-destroy
 
@@ -176,37 +179,39 @@ func newRunCmd(app *App) *cobra.Command {
 
 			hook := policy.Noop{}
 
-			// --- Gateway ---
+			// --- Gateway (only with enforced sandbox) ---
 
 			sessionID := uuid.New().String()
 			meter := gateway.NewMeter(sessionID)
 
-			// Resolve provider from workspace config (future: workspace.config.provider)
-			// ponytail: for now, detect from credentials. Phase 3 reads from workspace file.
-			var gwProvider gateway.ProviderConfig
-			if key, err := credential.Resolve("anthropic"); err == nil {
-				gwProvider = gateway.ProviderConfig{Name: "anthropic", BaseURL: "https://api.anthropic.com", APIKey: key}
-			} else if key, err := credential.Resolve("openai"); err == nil {
-				gwProvider = gateway.ProviderConfig{Name: "openai", BaseURL: "https://api.openai.com", APIKey: key}
-			}
+			var gw *gateway.Proxy
+			if sb.Type.Enforced() {
+				// Resolve provider from workspace config (future: workspace.config.provider)
+				var gwProvider gateway.ProviderConfig
+				if key, err := credential.Resolve("anthropic"); err == nil {
+					gwProvider = gateway.ProviderConfig{Name: "anthropic", BaseURL: "https://api.anthropic.com", APIKey: key}
+				} else if key, err := credential.Resolve("openai"); err == nil {
+					gwProvider = gateway.ProviderConfig{Name: "openai", BaseURL: "https://api.openai.com", APIKey: key}
+				}
 
-			gw := gateway.New(meter, gwProvider)
-			if gwProvider.APIKey == "" {
-				// No credentials — gateway cannot route. Skip silently.
-				gw = nil
-			} else if err := gw.Start(); err != nil {
-				app.Log.Warn("gateway failed to start, proceeding without capture", "err", err)
-				gw = nil
-			} else {
-				defer gw.Stop()
-				// Point harness at our gateway instead of real API
-				switch gwProvider.Name {
-				case "anthropic":
-					cfg.Env["ANTHROPIC_BASE_URL"] = gw.BaseURL()
-					cfg.Env["ANTHROPIC_API_KEY"] = "ok-gateway" // sentinel, stripped by gateway
-				case "openai":
-					cfg.Env["OPENAI_BASE_URL"] = gw.BaseURL()
-					cfg.Env["OPENAI_API_KEY"] = "ok-gateway"
+				if gwProvider.APIKey == "" {
+					app.Log.Warn("sandbox is enforced but no provider credentials — no API capture")
+				} else {
+					gw = gateway.New(meter, gwProvider)
+					if err := gw.Start(); err != nil {
+						app.Log.Warn("gateway failed to start, proceeding without capture", "err", err)
+						gw = nil
+					} else {
+						defer gw.Stop()
+						switch gwProvider.Name {
+						case "anthropic":
+							cfg.Env["ANTHROPIC_BASE_URL"] = gw.BaseURL()
+							cfg.Env["ANTHROPIC_API_KEY"] = "ok-gateway"
+						case "openai":
+							cfg.Env["OPENAI_BASE_URL"] = gw.BaseURL()
+							cfg.Env["OPENAI_API_KEY"] = "ok-gateway"
+						}
+					}
 				}
 			}
 

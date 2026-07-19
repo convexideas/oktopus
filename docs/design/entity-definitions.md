@@ -399,18 +399,32 @@ For local-first phase: everything implicitly personal. Model doesn't prevent sha
 
 ## Gateway Enforcement Model
 
-The gateway operates in two tiers depending on sandbox type:
+The gateway only runs when the sandbox provides OS-level enforcement.
+No advisory/best-effort mode — if it can't be enforced, it doesn't exist.
 
-**Tier 1 — Advisory (local/process sandbox):**
-- Gateway sets ANTHROPIC_BASE_URL / OPENAI_BASE_URL on the harness process
-- Works for all harnesses that respect base URL env vars
-- If harness ignores env vars, gateway is bypassed — IO stream capture is the fallback
-- No OS-level enforcement — it's the host's network
+**Enforced sandbox types (gateway active):**
 
-**Tier 2 — Mandatory (container/VM sandbox):**
-- All egress blocked except through gateway (iptables/pf rules in the container)
-- Only possible when we control the network namespace
-- Harness cannot bypass — even if it ignores env vars, traffic is blocked
+| Type | OS | Mechanism |
+|------|-----|-----------|
+| seatbelt | macOS | Kernel sandbox — network routed through gateway |
+| bwrap | Linux | User namespaces — network routed through gateway |
+| container | any | OCI network namespace — iptables DNAT to gateway |
+| vm | any | Firecracker/hypervisor — full network control |
 
-Users who need full capture and policy enforcement should use container or VM sandbox types.
-Local/process sandboxes are convenience-first — capture is best-effort.
+**Degraded fallback (no gateway):**
+
+| Type | OS | What you get |
+|------|-----|-------------|
+| process | any | Session tracking + stdout capture only |
+
+The default is the best enforced sandbox available:
+- macOS → seatbelt (always available)
+- Linux → bwrap (one `apt install bubblewrap` if missing)
+- Windows → process (degraded, warn user)
+
+`ok run --no-sandbox` explicitly opts out of enforcement for debugging.
+
+**Rationale:** Advisory capture that can be bypassed creates false confidence.
+Better to have fewer complete records than many incomplete ones.
+The memory/learning loop depends on data integrity — partial captures corrupt
+the procedural extraction pipeline.

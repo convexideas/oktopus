@@ -58,7 +58,7 @@ func newSandboxCreateCmd(app *App) *cobra.Command {
 				sandboxCfg.Type = typeFlag
 			}
 
-			driver := runtime.ResolveSandboxDriver(sandboxCfg)
+			driver, _ := runtime.ResolveSandboxDriver(sandboxCfg)
 			sb, err := driver.Create(ws, name, sandboxCfg.Config)
 			if err != nil {
 				return err
@@ -89,7 +89,7 @@ func newSandboxExecCmd(app *App) *cobra.Command {
 				return err
 			}
 
-			provider := runtime.ResolveSandboxDriver(runtime.SandboxConfig{})
+			provider, _ := runtime.ResolveSandboxDriver(runtime.SandboxConfig{})
 			sb, err := provider.Get(ws, name)
 			if err != nil {
 				return fmt.Errorf("sandbox %s:%s not found (create it with: ok sandbox create %s)", ws, name, args[0])
@@ -156,7 +156,7 @@ func newSandboxListCmd(app *App) *cobra.Command {
 					return nil
 				}
 
-				driver := runtime.ResolveSandboxDriver(runtime.SandboxConfig{})
+				driver, _ := runtime.ResolveSandboxDriver(runtime.SandboxConfig{})
 				w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 2, 2, ' ', 0)
 				fmt.Fprintln(w, "WORKSPACE\tSANDBOX")
 				for _, workspace := range workspaces {
@@ -169,7 +169,7 @@ func newSandboxListCmd(app *App) *cobra.Command {
 				return nil
 			}
 
-			driver := runtime.ResolveSandboxDriver(runtime.SandboxConfig{})
+			driver, _ := runtime.ResolveSandboxDriver(runtime.SandboxConfig{})
 			names, _ := driver.List(ws)
 			if len(names) == 0 {
 				cmd.Printf("no sandboxes for workspace %q\n", ws)
