@@ -6,12 +6,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/convexideas/oktopus/internal/config"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
 )
-
-const appDirName = "ok"
 
 // WorkspaceYAMLName is the filename for workspace config in managed workspaces.
 const WorkspaceYAMLName = "workspace.yaml"
@@ -19,17 +18,9 @@ const WorkspaceYAMLName = "workspace.yaml"
 // ProjectYAMLName is the filename for workspace config embedded in a project root.
 const ProjectYAMLName = ".ok.yaml"
 
-// Home returns the base directory for all ok state.
-// Resolution: $OK_HOME > $XDG_CONFIG_HOME/ok > ~/.ok
+// Home returns the base directory for all ok state. Delegates to config.Home().
 func Home() string {
-	if dir := os.Getenv("OK_HOME"); dir != "" {
-		return dir
-	}
-	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
-		return filepath.Join(xdg, appDirName)
-	}
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, "."+appDirName)
+	return config.Home()
 }
 
 // ResolveWorkspaceDir returns the managed workspace directory path.

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"text/tabwriter"
 
@@ -44,8 +45,10 @@ func newWorkspaceCreateCmd(app *App) *cobra.Command {
 				return err
 			}
 
-			if sourceFlag != "" {
-				abs, _ := filepath.Abs(sourceFlag)
+			source := sourceFlag
+			if source != "" {
+				abs, _ := filepath.Abs(source)
+				source = abs
 				ref := &runtime.WorkspaceRef{
 					WorkspaceID: ws.ID,
 					Kind:        "source",
@@ -56,7 +59,33 @@ func newWorkspaceCreateCmd(app *App) *cobra.Command {
 				}
 			}
 
+			// Write workspace.yaml in managed dir
+			wsDir := runtime.ResolveWorkspaceDir(name)
+			if err := os.MkdirAll(wsDir, 0o755); err != nil {
+				return err
+			}
+			yamlContent := fmt.Sprintf(`# Workspace: %s
+name: %s
+source: %s
+
+sandbox_defaults:
+  type: auto
+
+gateway:
+  provider: ""
+
+defaults:
+  harness: ""
+  model: ""
+`, name, name, source)
+
+			yamlPath := filepath.Join(wsDir, runtime.WorkspaceYAMLName)
+			if err := os.WriteFile(yamlPath, []byte(yamlContent), 0o644); err != nil {
+				return err
+			}
+
 			cmd.Printf("created workspace %q (%s)\n", name, ws.ID[:8])
+			cmd.Printf("  config: %s\n", yamlPath)
 			return nil
 		},
 	}

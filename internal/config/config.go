@@ -98,9 +98,9 @@ func (c *Config) ResolveSandboxProvider(name string) (string, *SandboxProvider) 
 	return "local", &SandboxProvider{Type: "auto"}
 }
 
-// resolveHome returns the base directory for all ok state.
+// Home returns the base directory for all ok state.
 // Resolution: $OK_HOME > $XDG_CONFIG_HOME/ok > ~/.ok
-func resolveHome() string {
+func Home() string {
 	if dir := os.Getenv("OK_HOME"); dir != "" {
 		return dir
 	}
@@ -115,7 +115,7 @@ func resolveHome() string {
 func Load() (*Config, error) {
 	k := koanf.New(".")
 
-	okHome := resolveHome()
+	okHome := Home()
 
 	defaults := Config{
 		DBPath:  filepath.Join(okHome, DBFile),

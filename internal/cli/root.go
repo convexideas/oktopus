@@ -29,6 +29,7 @@ func Execute(ctx context.Context) int {
 		newInitCmd(app),
 		newRunCmd(app),
 		newAuthCmd(app),
+		newImportCmd(app),
 		newSandboxCmd(app),
 		newSessionsCmd(app),
 		newCapabilitiesCmd(app),

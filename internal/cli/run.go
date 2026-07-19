@@ -36,6 +36,11 @@ func newRunCmd(app *App) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
 
+			// Guard: config must exist
+			if len(app.Config.APIProviders) == 0 && app.Config.Defaults.APIProvider == "" {
+				return fmt.Errorf("no configuration found — run 'ok init' to set up")
+			}
+
 			var agentName string
 			var agentArgs []string
 			if len(args) > 0 {
@@ -97,6 +102,7 @@ func newRunCmd(app *App) *cobra.Command {
 
 			// Workspace
 			workspacePath, _ := os.Getwd()
+			var wsFile *runtime.WorkspaceFile
 			if workspaceFlag != "" {
 				ws, err := app.Workspaces.GetWorkspaceByName(ctx, workspaceFlag)
 				if err != nil {
@@ -109,6 +115,9 @@ func newRunCmd(app *App) *cobra.Command {
 						break
 					}
 				}
+				// Load workspace YAML for overrides
+				wsDir := runtime.ResolveWorkspaceDir(workspaceFlag)
+				wsFile, _ = runtime.LoadWorkspaceFile(wsDir)
 			}
 
 			// --- Sandbox + Assembly ---
@@ -188,8 +197,12 @@ func newRunCmd(app *App) *cobra.Command {
 
 			var gw *gateway.Proxy
 			if sb.Type.Enforced() {
-				// Resolve API provider from config
-				provName, apiCfg := app.Config.ResolveAPIProvider("")
+				// Resolve API provider: workspace gateway.provider > config default
+				apiProviderName := ""
+				if wsFile != nil && wsFile.Gateway.Provider != "" {
+					apiProviderName = wsFile.Gateway.Provider
+				}
+				provName, apiCfg := app.Config.ResolveAPIProvider(apiProviderName)
 				if apiCfg == nil {
 					app.Log.Warn("sandbox is enforced but no api_providers configured — no API capture")
 				} else {
