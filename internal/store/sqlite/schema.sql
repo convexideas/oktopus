@@ -162,16 +162,20 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_user ON profiles(user_id);
 
--- Captures: metadata for IO stream recording sessions.
-CREATE TABLE IF NOT EXISTS captures (
+-- Gateway captures: structured LLM API request/response pairs captured by the proxy.
+CREATE TABLE IF NOT EXISTS gateway_captures (
   id TEXT PRIMARY KEY,
-  session_id TEXT,
-  agent TEXT NOT NULL,
-  started_at TEXT NOT NULL,
-  ended_at TEXT,
-  status TEXT NOT NULL DEFAULT 'running',
-  log_path TEXT NOT NULL,
-  FOREIGN KEY (session_id) REFERENCES sessions(id)
+  session_id TEXT NOT NULL,
+  timestamp TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  model TEXT NOT NULL DEFAULT '',
+  endpoint TEXT NOT NULL DEFAULT '',
+  tokens_in INTEGER NOT NULL DEFAULT 0,
+  tokens_out INTEGER NOT NULL DEFAULT 0,
+  cost_usd REAL NOT NULL DEFAULT 0,
+  duration_ms INTEGER NOT NULL DEFAULT 0,
+  request_json TEXT,
+  response_json TEXT
 );
 
 -- Indexes
@@ -186,5 +190,5 @@ CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id, sequence
 CREATE INDEX IF NOT EXISTS idx_messages_parent ON messages(parent_id);
 CREATE INDEX IF NOT EXISTS idx_message_parts_message ON message_parts(message_id, sequence);
 CREATE INDEX IF NOT EXISTS idx_message_attachments_message ON message_attachments(message_id);
-CREATE INDEX IF NOT EXISTS idx_captures_session ON captures(session_id);
-CREATE INDEX IF NOT EXISTS idx_captures_agent ON captures(agent, started_at);
+CREATE INDEX IF NOT EXISTS idx_captures_session ON gateway_captures(session_id);
+CREATE INDEX IF NOT EXISTS idx_captures_provider ON gateway_captures(provider, timestamp);

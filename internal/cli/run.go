@@ -11,11 +11,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/convexideas/oktopus/internal/gateway"
 	"github.com/convexideas/oktopus/internal/runtime"
 	"github.com/convexideas/oktopus/internal/identity"
 	"github.com/convexideas/oktopus/internal/memory"
 	"github.com/convexideas/oktopus/internal/policy"
 	"github.com/convexideas/oktopus/internal/registry"
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
@@ -172,6 +174,24 @@ func newRunCmd(app *App) *cobra.Command {
 			// --- Policy ---
 
 			hook := policy.Noop{}
+
+			// --- Gateway ---
+
+			sessionID := uuid.New().String()
+			meter := gateway.NewMeter(sessionID)
+			gw := gateway.New(meter)
+			if err := gw.Start(); err != nil {
+				app.Log.Warn("gateway failed to start, proceeding without capture", "err", err)
+				gw = nil
+			} else {
+				defer gw.Stop()
+				cfg.Env["HTTP_PROXY"] = "http://" + gw.Addr
+				cfg.Env["HTTPS_PROXY"] = "http://" + gw.Addr
+				cfg.ProxyAddr = gw.Addr
+			}
+
+			// --- Policy check ---
+
 			decision, reason, err := hook.OnSessionStart(ctx, cfg)
 			if err != nil {
 				return fmt.Errorf("policy error: %w", err)
@@ -188,9 +208,10 @@ func newRunCmd(app *App) *cobra.Command {
 			}
 
 			dbSess := &runtime.Session{
-				ID:        sess.ID(),
+				ID:        sessionID,
 				Agent:     harnessName,
 				Workspace: workspacePath,
+				Sandbox:   sb.Name,
 				Title:     harnessName,
 			}
 			app.Store.CreateSession(ctx, dbSess)
@@ -216,6 +237,21 @@ func newRunCmd(app *App) *cobra.Command {
 
 			app.Store.CompleteSession(ctx, sess.ID(), status)
 			hook.OnSessionEnd(ctx, sess.ID(), policy.Result{ExitCode: sess.ExitCode(), Status: status})
+
+			// Gateway: flush captures + report metering
+			if gw != nil {
+				tokensIn, tokensOut, cost := meter.Totals()
+				captures := meter.Flush()
+				if len(captures) > 0 {
+					app.Log.Info("gateway captured",
+						"requests", len(captures),
+						"tokens_in", tokensIn,
+						"tokens_out", tokensOut,
+						"cost_usd", fmt.Sprintf("%.4f", cost),
+					)
+					app.Store.SaveCaptures(ctx, captures)
+				}
+			}
 
 			// Memory capture: save output as episode
 			if output := sess.Output(); output != "" {
