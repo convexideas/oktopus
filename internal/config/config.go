@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	AppDir     = ".ok"
+	appDirName = "ok"
 	ConfigFile = "config.yaml"
 	DBFile     = "oktopus.db"
 )
@@ -28,12 +28,24 @@ type Config struct {
 	HomeDir   string `koanf:"home_dir"`
 }
 
+// resolveHome returns the base directory for all ok state.
+// Resolution: $OK_HOME > $XDG_CONFIG_HOME/ok > ~/.ok
+func resolveHome() string {
+	if dir := os.Getenv("OK_HOME"); dir != "" {
+		return dir
+	}
+	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
+		return filepath.Join(xdg, appDirName)
+	}
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, "."+appDirName)
+}
+
 // Load resolves configuration by layering defaults, config file, and env vars.
 func Load() (*Config, error) {
 	k := koanf.New(".")
 
-	home, _ := os.UserHomeDir()
-	okHome := filepath.Join(home, AppDir)
+	okHome := resolveHome()
 
 	defaults := Config{
 		DBPath:  filepath.Join(okHome, DBFile),

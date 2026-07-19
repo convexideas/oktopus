@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/convexideas/oktopus/internal/credential"
 	"github.com/convexideas/oktopus/internal/gateway"
 	"github.com/convexideas/oktopus/internal/runtime"
 	"github.com/convexideas/oktopus/internal/identity"
@@ -181,17 +182,19 @@ func newRunCmd(app *App) *cobra.Command {
 			meter := gateway.NewMeter(sessionID)
 
 			// Resolve provider from workspace config (future: workspace.config.provider)
-			// ponytail: for now, detect from environment. Phase 3 reads from workspace config.
-			gwProvider := gateway.ProviderConfig{Name: "anthropic", BaseURL: "https://api.anthropic.com"}
-			if key := os.Getenv("ANTHROPIC_API_KEY"); key != "" {
-				gwProvider.APIKey = key
-			}
-			if key := os.Getenv("OPENAI_API_KEY"); key != "" {
+			// ponytail: for now, detect from credentials. Phase 3 reads from workspace file.
+			var gwProvider gateway.ProviderConfig
+			if key, err := credential.Resolve("anthropic"); err == nil {
+				gwProvider = gateway.ProviderConfig{Name: "anthropic", BaseURL: "https://api.anthropic.com", APIKey: key}
+			} else if key, err := credential.Resolve("openai"); err == nil {
 				gwProvider = gateway.ProviderConfig{Name: "openai", BaseURL: "https://api.openai.com", APIKey: key}
 			}
 
 			gw := gateway.New(meter, gwProvider)
-			if err := gw.Start(); err != nil {
+			if gwProvider.APIKey == "" {
+				// No credentials — gateway cannot route. Skip silently.
+				gw = nil
+			} else if err := gw.Start(); err != nil {
 				app.Log.Warn("gateway failed to start, proceeding without capture", "err", err)
 				gw = nil
 			} else {

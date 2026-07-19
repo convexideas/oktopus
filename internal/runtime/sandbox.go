@@ -55,8 +55,7 @@ type LocalProcess struct{}
 func (d *LocalProcess) Name() string { return "local/process" }
 
 func (d *LocalProcess) homePath(workspace, name string) string {
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".ok", workspace, "sandboxes", name, "home")
+	return filepath.Join(Home(), workspace, "sandboxes", name, "home")
 }
 
 func (d *LocalProcess) Create(workspace, name string, config map[string]any) (*Sandbox, error) {
@@ -76,8 +75,7 @@ func (d *LocalProcess) Get(workspace, name string) (*Sandbox, error) {
 }
 
 func (d *LocalProcess) List(workspace string) ([]string, error) {
-	home, _ := os.UserHomeDir()
-	dir := filepath.Join(home, ".ok", workspace, "sandboxes")
+	dir := filepath.Join(Home(), workspace, "sandboxes")
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, nil
@@ -92,7 +90,6 @@ func (d *LocalProcess) List(workspace string) ([]string, error) {
 }
 
 func (d *LocalProcess) Destroy(workspace, name string) error {
-	home, _ := os.UserHomeDir()
-	dir := filepath.Join(home, ".ok", workspace, "sandboxes", name)
+	dir := filepath.Join(Home(), workspace, "sandboxes", name)
 	return os.RemoveAll(dir)
 }
