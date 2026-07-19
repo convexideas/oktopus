@@ -38,8 +38,9 @@ type APIProvider struct {
 
 // SandboxProvider is a named sandbox backend from user config.
 type SandboxProvider struct {
-	Type   string         `koanf:"type"`   // auto, seatbelt, bwrap, container, vm, process
-	Config map[string]any `koanf:"config"` // provider-specific
+	Type       string         `koanf:"type"`       // auto, seatbelt, bwrap, container, vm, process
+	Credential string         `koanf:"credential"` // keychain key for remote providers (modal, fly, daytona)
+	Config     map[string]any `koanf:"config"`     // provider-specific
 }
 
 // Defaults holds user-facing defaults for resolution.
