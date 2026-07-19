@@ -9,6 +9,7 @@ import (
 	"github.com/convexideas/oktopus/internal/gateway"
 	"github.com/convexideas/oktopus/internal/identity"
 	"github.com/convexideas/oktopus/internal/memory"
+	"github.com/convexideas/oktopus/internal/portal"
 	"github.com/convexideas/oktopus/internal/registry"
 	"github.com/convexideas/oktopus/internal/runtime"
 	"github.com/convexideas/oktopus/internal/runtime/claude"
@@ -28,6 +29,7 @@ type App struct {
 	Memory       memory.Store
 	Profiles     identity.Store
 	Capabilities registry.Store
+	Portal       portal.Client
 	Harness      *runtime.HarnessRegistry
 	Log          *slog.Logger
 
@@ -62,6 +64,7 @@ func NewApp() (*App, error) {
 		Memory:       store,
 		Profiles:     store,
 		Capabilities: store,
+		Portal:       &portal.MockClient{},
 		Harness:      harnesses,
 		Log:          log,
 		closer:       func() { store.Close() },
