@@ -1,0 +1,54 @@
+# Example ~/.ok/config.yaml
+# All provider knowledge lives here — the codebase knows only protocols and interfaces.
+
+# API providers: how to reach inference endpoints
+# Each entry is a named provider the user can reference from workspaces.
+api_providers:
+  anthropic-personal:
+    protocol: anthropic               # wire format (anthropic | openai)
+    base_url: https://api.anthropic.com
+    credential: anthropic-personal    # keychain key (ok:<credential>)
+
+  openai-work:
+    protocol: openai
+    base_url: https://api.openai.com/v1
+    credential: openai-work
+
+  openrouter:
+    protocol: openai                  # OpenRouter speaks OpenAI format
+    base_url: https://openrouter.ai/api/v1
+    credential: openrouter
+
+  ollama:
+    protocol: openai                  # Ollama speaks OpenAI format
+    base_url: http://localhost:11434/v1
+    credential: ""                    # no auth needed
+
+# Sandbox providers: where sandboxes run
+# Each entry is a named sandbox backend.
+sandbox_providers:
+  local:
+    type: auto                        # auto-detect: seatbelt (macOS) or bwrap (Linux)
+
+  docker-local:
+    type: container
+    config:
+      runtime: docker                 # or: podman
+
+  modal-gpu:
+    type: container
+    config:
+      image: python:3.12
+      gpu: a100
+
+  daytona-dev:
+    type: vm
+    config:
+      workspace_id: ws_abc123
+
+# Defaults — what ok run uses when no flags given
+defaults:
+  api_provider: anthropic-personal    # which api_providers entry to route through
+  sandbox_provider: local             # which sandbox_providers entry to use
+  harness: pi
+  model: claude-sonnet-4-20250514

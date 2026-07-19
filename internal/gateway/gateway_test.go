@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/convexideas/oktopus/internal/config"
 )
 
 func TestProxyCapturesAndForwards(t *testing.T) {
@@ -21,9 +23,10 @@ func TestProxyCapturesAndForwards(t *testing.T) {
 	// Gateway pointing at mock as upstream
 	meter := NewMeter("test-session")
 	provider := ProviderConfig{
-		Name:    "anthropic",
-		BaseURL: mock.URL,
-		APIKey:  "sk-real-secret-key",
+		Name:     "anthropic",
+		Protocol: config.ProtocolAnthropic,
+		BaseURL:  mock.URL,
+		APIKey:   "sk-real-secret-key",
 	}
 	gw := New(meter, provider)
 	if err := gw.Start(); err != nil {
@@ -79,7 +82,7 @@ func TestProxyStripsAgentAuth(t *testing.T) {
 	defer mock.Close()
 
 	meter := NewMeter("test")
-	gw := New(meter, ProviderConfig{Name: "openai", BaseURL: mock.URL, APIKey: "sk-real"})
+	gw := New(meter, ProviderConfig{Name: "openai", Protocol: config.ProtocolOpenAI, BaseURL: mock.URL, APIKey: "sk-real"})
 	gw.Start()
 	defer gw.Stop()
 
@@ -89,7 +92,7 @@ func TestProxyStripsAgentAuth(t *testing.T) {
 
 	http.DefaultClient.Do(req)
 
-	// For openai provider, should get Bearer with real key
+	// For openai protocol, should get Bearer with real key
 	if gotAuthHeader != "Bearer sk-real" {
 		t.Errorf("expected 'Bearer sk-real', got %q", gotAuthHeader)
 	}

@@ -16,7 +16,6 @@ func newAuthCmd(app *App) *cobra.Command {
 	}
 
 	cmd.AddCommand(newAuthAddCmd(app))
-	cmd.AddCommand(newAuthListCmd(app))
 	cmd.AddCommand(newAuthRemoveCmd(app))
 	cmd.AddCommand(newAuthStatusCmd(app))
 
@@ -25,48 +24,29 @@ func newAuthCmd(app *App) *cobra.Command {
 
 func newAuthAddCmd(app *App) *cobra.Command {
 	return &cobra.Command{
-		Use:   "add <provider>",
-		Short: "Store an API key in the system keychain",
-		Long:  "Providers: anthropic, openai, ollama",
+		Use:   "add <credential-name>",
+		Short: "Store a secret in the system keychain",
+		Long:  "Credential name should match the 'credential' field in your config.yaml provider entries.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			provider := args[0]
+			name := args[0]
 
-			fmt.Fprintf(cmd.OutOrStdout(), "Paste your %s API key: ", provider)
+			fmt.Fprintf(cmd.OutOrStdout(), "Paste secret for %q: ", name)
 			key, err := term.ReadPassword(int(os.Stdin.Fd()))
-			fmt.Fprintln(cmd.OutOrStdout()) // newline after hidden input
+			fmt.Fprintln(cmd.OutOrStdout())
 			if err != nil {
-				return fmt.Errorf("reading key: %w", err)
+				return fmt.Errorf("reading secret: %w", err)
 			}
 
 			if len(key) == 0 {
-				return fmt.Errorf("empty key")
+				return fmt.Errorf("empty secret")
 			}
 
-			if err := credential.Store(provider, string(key)); err != nil {
+			if err := credential.Store(name, string(key)); err != nil {
 				return fmt.Errorf("storing credential: %w", err)
 			}
 
-			cmd.Printf("✓ Stored in system keychain as ok:%s\n", provider)
-			return nil
-		},
-	}
-}
-
-func newAuthListCmd(app *App) *cobra.Command {
-	return &cobra.Command{
-		Use:   "list",
-		Short: "List stored credentials",
-		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			providers := credential.List()
-			if len(providers) == 0 {
-				cmd.Println("no credentials stored (use: ok auth add <provider>)")
-				return nil
-			}
-			for _, p := range providers {
-				cmd.Printf("  ✓ %s\n", p)
-			}
+			cmd.Printf("✓ Stored in system keychain as ok:%s\n", name)
 			return nil
 		},
 	}
@@ -74,15 +54,15 @@ func newAuthListCmd(app *App) *cobra.Command {
 
 func newAuthRemoveCmd(app *App) *cobra.Command {
 	return &cobra.Command{
-		Use:   "remove <provider>",
+		Use:   "remove <credential-name>",
 		Short: "Remove a stored credential",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			provider := args[0]
-			if err := credential.Delete(provider); err != nil {
+			name := args[0]
+			if err := credential.Delete(name); err != nil {
 				return fmt.Errorf("removing credential: %w", err)
 			}
-			cmd.Printf("✓ Removed ok:%s from keychain\n", provider)
+			cmd.Printf("✓ Removed ok:%s from keychain\n", name)
 			return nil
 		},
 	}
@@ -91,17 +71,22 @@ func newAuthRemoveCmd(app *App) *cobra.Command {
 func newAuthStatusCmd(app *App) *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
-		Short: "Show credential resolution status",
+		Short: "Show credential resolution status for configured providers",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			for _, p := range []string{"anthropic", "openai", "ollama"} {
-				key, err := credential.Resolve(p)
-				if err != nil {
-					cmd.Printf("  ✗ %s — not configured\n", p)
+			if len(app.Config.APIProviders) == 0 {
+				cmd.Println("no api_providers configured in config.yaml")
+				return nil
+			}
+			for name, p := range app.Config.APIProviders {
+				if p.Credential == "" {
+					cmd.Printf("  - %s — no credential configured\n", name)
+					continue
+				}
+				if credential.Exists(p.Credential) {
+					cmd.Printf("  ✓ %s (credential: %s)\n", name, p.Credential)
 				} else {
-					// Show first 8 chars + masked
-					masked := key[:min(8, len(key))] + "..."
-					cmd.Printf("  ✓ %s — %s\n", p, masked)
+					cmd.Printf("  ✗ %s (credential: %s — not found)\n", name, p.Credential)
 				}
 			}
 			return nil

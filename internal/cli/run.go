@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/convexideas/oktopus/internal/config"
 	"github.com/convexideas/oktopus/internal/credential"
 	"github.com/convexideas/oktopus/internal/gateway"
 	"github.com/convexideas/oktopus/internal/runtime"
@@ -126,12 +127,13 @@ func newRunCmd(app *App) *cobra.Command {
 				}
 			}
 
-			provider, sandboxWarning := runtime.ResolveSandboxDriver(runtime.SandboxConfig{})
+			_, sandboxProviderCfg := app.Config.ResolveSandboxProvider("")
+			provider, sandboxWarning := runtime.ResolveSandboxDriver(sandboxProviderCfg)
 			wsName := workspaceFlag
 			if wsName == "" {
 				wsName = "default"
 			}
-			sb, err := provider.Create(wsName, "default", nil)
+			sb, err := provider.Create(wsName, "default", sandboxProviderCfg.Config)
 			if err != nil {
 				return fmt.Errorf("creating sandbox: %w", err)
 			}
@@ -186,30 +188,36 @@ func newRunCmd(app *App) *cobra.Command {
 
 			var gw *gateway.Proxy
 			if sb.Type.Enforced() {
-				// Resolve provider from workspace config (future: workspace.config.provider)
-				var gwProvider gateway.ProviderConfig
-				if key, err := credential.Resolve("anthropic"); err == nil {
-					gwProvider = gateway.ProviderConfig{Name: "anthropic", BaseURL: "https://api.anthropic.com", APIKey: key}
-				} else if key, err := credential.Resolve("openai"); err == nil {
-					gwProvider = gateway.ProviderConfig{Name: "openai", BaseURL: "https://api.openai.com", APIKey: key}
-				}
-
-				if gwProvider.APIKey == "" {
-					app.Log.Warn("sandbox is enforced but no provider credentials — no API capture")
+				// Resolve API provider from config
+				provName, apiCfg := app.Config.ResolveAPIProvider("")
+				if apiCfg == nil {
+					app.Log.Warn("sandbox is enforced but no api_providers configured — no API capture")
 				} else {
-					gw = gateway.New(meter, gwProvider)
-					if err := gw.Start(); err != nil {
-						app.Log.Warn("gateway failed to start, proceeding without capture", "err", err)
-						gw = nil
+					apiKey, credErr := credential.Resolve(apiCfg.Credential)
+					if credErr != nil {
+						app.Log.Warn("sandbox is enforced but credential not found — no API capture",
+							"provider", provName, "credential", apiCfg.Credential)
 					} else {
-						defer gw.Stop()
-						switch gwProvider.Name {
-						case "anthropic":
-							cfg.Env["ANTHROPIC_BASE_URL"] = gw.BaseURL()
-							cfg.Env["ANTHROPIC_API_KEY"] = "ok-gateway"
-						case "openai":
-							cfg.Env["OPENAI_BASE_URL"] = gw.BaseURL()
-							cfg.Env["OPENAI_API_KEY"] = "ok-gateway"
+						gwProvider := gateway.ProviderConfig{
+							Name:     provName,
+							Protocol: apiCfg.Protocol,
+							BaseURL:  apiCfg.BaseURL,
+							APIKey:   apiKey,
+						}
+						gw = gateway.New(meter, gwProvider)
+						if err := gw.Start(); err != nil {
+							app.Log.Warn("gateway failed to start, proceeding without capture", "err", err)
+							gw = nil
+						} else {
+							defer gw.Stop()
+							switch apiCfg.Protocol {
+							case config.ProtocolAnthropic:
+								cfg.Env["ANTHROPIC_BASE_URL"] = gw.BaseURL()
+								cfg.Env["ANTHROPIC_API_KEY"] = "ok-gateway"
+							case config.ProtocolOpenAI:
+								cfg.Env["OPENAI_BASE_URL"] = gw.BaseURL()
+								cfg.Env["OPENAI_API_KEY"] = "ok-gateway"
+							}
 						}
 					}
 				}

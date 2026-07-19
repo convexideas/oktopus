@@ -1,64 +1,59 @@
-// Package credential resolves API keys for LLM providers.
-// Resolution order: OS keychain > environment variable > file.
+// Package credential resolves API keys from the OS keychain.
+// Resolution order: OS keychain > environment variable.
+// The package knows nothing about providers — it stores and retrieves by name.
 package credential
 
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/zalando/go-keyring"
 )
 
-const serviceName = "oktopus"
+const serviceName = "ok"
 
-// Provider names used as keychain keys.
-const (
-	Anthropic = "anthropic"
-	OpenAI    = "openai"
-	Ollama    = "ollama"
-)
+// Resolve returns the secret for a given credential name.
+// Resolution: keychain (ok:<name>) > env var (uppercased name + _API_KEY).
+func Resolve(name string) (string, error) {
+	if name == "" {
+		return "", fmt.Errorf("no credential name specified")
+	}
 
-// envVars maps provider names to their conventional env var.
-var envVars = map[string]string{
-	Anthropic: "ANTHROPIC_API_KEY",
-	OpenAI:    "OPENAI_API_KEY",
-}
-
-// Resolve returns the API key for a provider.
-// Resolution: keychain > env var.
-func Resolve(provider string) (string, error) {
 	// 1. OS keychain
-	if key, err := keyring.Get(serviceName, provider); err == nil && key != "" {
+	if key, err := keyring.Get(serviceName, name); err == nil && key != "" {
 		return key, nil
 	}
 
-	// 2. Environment variable
-	if envVar, ok := envVars[provider]; ok {
-		if key := os.Getenv(envVar); key != "" {
-			return key, nil
-		}
+	// 2. Environment variable: "anthropic-personal" → ANTHROPIC_PERSONAL_API_KEY
+	envVar := toEnvVar(name)
+	if key := os.Getenv(envVar); key != "" {
+		return key, nil
 	}
 
-	return "", fmt.Errorf("no credential found for provider %q (checked keychain + env)", provider)
+	return "", fmt.Errorf("no credential found for %q (checked keychain ok:%s + env %s)", name, name, envVar)
 }
 
-// Store saves an API key to the OS keychain.
-func Store(provider, apiKey string) error {
-	return keyring.Set(serviceName, provider, apiKey)
+// Store saves a secret to the OS keychain under ok:<name>.
+func Store(name, secret string) error {
+	return keyring.Set(serviceName, name, secret)
 }
 
-// Delete removes an API key from the OS keychain.
-func Delete(provider string) error {
-	return keyring.Delete(serviceName, provider)
+// Delete removes a secret from the OS keychain.
+func Delete(name string) error {
+	return keyring.Delete(serviceName, name)
 }
 
-// List returns which providers have stored credentials.
-func List() []string {
-	var found []string
-	for _, p := range []string{Anthropic, OpenAI, Ollama} {
-		if _, err := keyring.Get(serviceName, p); err == nil {
-			found = append(found, p)
-		}
-	}
-	return found
+// Exists checks whether a credential is resolvable (keychain or env).
+func Exists(name string) bool {
+	_, err := Resolve(name)
+	return err == nil
+}
+
+// toEnvVar converts a credential name to an env var name.
+// "anthropic-personal" → "ANTHROPIC_PERSONAL_API_KEY"
+func toEnvVar(name string) string {
+	s := strings.ToUpper(name)
+	s = strings.ReplaceAll(s, "-", "_")
+	return s + "_API_KEY"
 }

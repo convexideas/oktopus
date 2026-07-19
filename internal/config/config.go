@@ -20,12 +20,81 @@ const (
 	DBFile     = "oktopus.db"
 )
 
+// APIProtocol is a wire format the gateway knows how to proxy.
+// This is the ONLY thing the codebase knows about providers.
+type APIProtocol string
+
+const (
+	ProtocolAnthropic APIProtocol = "anthropic"
+	ProtocolOpenAI    APIProtocol = "openai"
+)
+
+// APIProvider is a named inference endpoint from user config.
+type APIProvider struct {
+	Protocol   APIProtocol `koanf:"protocol"`
+	BaseURL    string      `koanf:"base_url"`
+	Credential string      `koanf:"credential"` // keychain key (ok:<credential>)
+}
+
+// SandboxProvider is a named sandbox backend from user config.
+type SandboxProvider struct {
+	Type   string         `koanf:"type"`   // auto, seatbelt, bwrap, container, vm, process
+	Config map[string]any `koanf:"config"` // provider-specific
+}
+
+// Defaults holds user-facing defaults for resolution.
+type Defaults struct {
+	APIProvider     string `koanf:"api_provider"`     // key into APIProviders
+	SandboxProvider string `koanf:"sandbox_provider"` // key into SandboxProviders
+	Harness         string `koanf:"harness"`
+	Model           string `koanf:"model"`
+}
+
 // Config holds all resolved application configuration.
 type Config struct {
-	DBPath    string `koanf:"db_path"`
-	LogDir    string `koanf:"log_dir"`
+	DBPath  string `koanf:"db_path"`
+	LogDir  string `koanf:"log_dir"`
+	HomeDir string `koanf:"home_dir"`
+
+	// Provider registries — loaded from config, not hardcoded
+	APIProviders     map[string]APIProvider     `koanf:"api_providers"`
+	SandboxProviders map[string]SandboxProvider `koanf:"sandbox_providers"`
+	Defaults         Defaults                   `koanf:"defaults"`
+
+	// Legacy — kept for backward compat during migration
 	ProxyAddr string `koanf:"proxy_addr"`
-	HomeDir   string `koanf:"home_dir"`
+}
+
+// ResolveAPIProvider returns the named API provider config.
+// Falls back to the default if name is empty.
+func (c *Config) ResolveAPIProvider(name string) (string, *APIProvider) {
+	if name == "" {
+		name = c.Defaults.APIProvider
+	}
+	if name == "" {
+		return "", nil
+	}
+	if p, ok := c.APIProviders[name]; ok {
+		return name, &p
+	}
+	return "", nil
+}
+
+// ResolveSandboxProvider returns the named sandbox provider config.
+// Falls back to the default if name is empty.
+func (c *Config) ResolveSandboxProvider(name string) (string, *SandboxProvider) {
+	if name == "" {
+		name = c.Defaults.SandboxProvider
+	}
+	if name == "" {
+		// Implicit default: local with auto-detect
+		return "local", &SandboxProvider{Type: "auto"}
+	}
+	if p, ok := c.SandboxProviders[name]; ok {
+		return name, &p
+	}
+	// Fallback: local/auto
+	return "local", &SandboxProvider{Type: "auto"}
 }
 
 // resolveHome returns the base directory for all ok state.

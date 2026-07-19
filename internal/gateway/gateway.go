@@ -23,14 +23,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/convexideas/oktopus/internal/config"
 	"github.com/google/uuid"
 )
 
 // ProviderConfig describes how to reach an upstream LLM provider.
+// All fields come from user config — nothing is hardcoded in the gateway.
 type ProviderConfig struct {
-	Name    string // "anthropic", "openai", "ollama", "custom"
-	BaseURL string // "https://api.anthropic.com", "https://api.openai.com", "http://localhost:11434"
-	APIKey  string // real credential — injected by gateway, never exposed to agent
+	Name     string             // user-defined name (for capture logging)
+	Protocol config.APIProtocol // wire format: determines auth header injection
+	BaseURL  string             // upstream endpoint
+	APIKey   string             // real credential — injected by gateway, never exposed to agent
 }
 
 // Proxy is a local reverse proxy that captures and meters LLM API traffic.
@@ -128,7 +131,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write(respBody)
 
 	// Capture + meter
-	tokensIn, tokensOut := extractUsage(p.Provider.Name, respBody)
+	tokensIn, tokensOut := extractUsage(string(p.Provider.Protocol), respBody)
 	model := extractModel(reqBody)
 
 	cap := Capture{
@@ -140,7 +143,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Endpoint:  r.URL.Path,
 		TokensIn:  tokensIn,
 		TokensOut: tokensOut,
-		Cost:      estimateCost(p.Provider.Name, model, tokensIn, tokensOut),
+		Cost:      estimateCost(string(p.Provider.Protocol), model, tokensIn, tokensOut),
 		Duration:  time.Since(start),
 		Request:   reqBody,
 		Response:  respBody,
@@ -153,10 +156,11 @@ func (p *Proxy) injectAuth(r *http.Request) {
 	if p.Provider.APIKey == "" {
 		return
 	}
-	switch p.Provider.Name {
-	case "anthropic":
+	switch p.Provider.Protocol {
+	case config.ProtocolAnthropic:
 		r.Header.Set("x-api-key", p.Provider.APIKey)
 	default:
+		// OpenAI and compatible (OpenRouter, Ollama, etc.)
 		r.Header.Set("Authorization", "Bearer "+p.Provider.APIKey)
 	}
 }
