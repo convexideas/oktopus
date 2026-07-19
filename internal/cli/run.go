@@ -224,13 +224,8 @@ func newRunCmd(app *App) *cobra.Command {
 				return fmt.Errorf("starting %s: %w", harnessName, err)
 			}
 
-			dbSess := &runtime.Session{
-				ID:        sessionID,
-				Agent:     harnessName,
-				Workspace: workspacePath,
-				Sandbox:   sb.Name,
-				Title:     harnessName,
-			}
+			dbSess := runtime.NewSession(sessionID, harnessName, workspacePath, sb.Name)
+			dbSess.Start()
 			app.Sessions.CreateSession(ctx, dbSess)
 
 			label := harnessName
@@ -247,13 +242,14 @@ func newRunCmd(app *App) *cobra.Command {
 			}()
 
 			waitErr := sess.Wait()
-			status := "completed"
 			if waitErr != nil {
-				status = "failed"
+				dbSess.Fail()
+			} else {
+				dbSess.Complete()
 			}
 
-			app.Sessions.CompleteSession(ctx, sess.ID(), status)
-			hook.OnSessionEnd(ctx, sess.ID(), policy.Result{ExitCode: sess.ExitCode(), Status: status})
+			app.Sessions.CompleteSession(ctx, sess.ID(), dbSess.Status)
+			hook.OnSessionEnd(ctx, sess.ID(), policy.Result{ExitCode: sess.ExitCode(), Status: dbSess.Status})
 
 			// Gateway: flush captures + report metering
 			if gw != nil {
